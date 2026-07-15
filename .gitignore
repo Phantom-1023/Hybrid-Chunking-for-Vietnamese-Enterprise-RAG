@@ -1,0 +1,27 @@
+# Bỏ qua các file cấu hình môi trường (Chứa API Key, thông tin nhạy cảm)
+.env
+.env.*
+
+# Bỏ qua dữ liệu Database nội bộ (tránh đẩy nhầm hàng GB data lên mạng)
+qdrant_data/
+qdrant_storage/
+
+# Bỏ qua các file rác sinh ra trong quá trình chạy Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Bỏ qua các thư mục môi trường ảo (Virtual Environment)
+venv/
+.venv/
+env/
+.env/
+
+# Bỏ qua các file tạm của hệ điều hành MacOS
+.DS_Store
+
+# Bỏ qua các cấu hình cá nhân của phần mềm code (VS Code, Cursor...)
+.vscode/
+.idea/
