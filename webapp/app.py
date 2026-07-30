@@ -686,10 +686,14 @@ def create_app(
             user, access_scope=access_scope, department_id=department_id
         )
         checksum = hashlib.sha256(payload).hexdigest()
-        storage_name = f"{user['id']}/{secrets.token_hex(12)}-{extracted.filename}"
+        # Storage object keys deliberately never contain a user-supplied file
+        # name. Supabase Storage rejects some Unicode/special-character keys;
+        # the original Vietnamese name remains in source_name for the UI.
+        storage_name = f"{user['id']}/{secrets.token_hex(16)}{extracted.extension}"
         if supabase_backend is not None:
-            supabase_backend.upload_document_file(storage_name, payload, extracted.mime_type)
+            document_id: str | None = None
             try:
+                supabase_backend.upload_document_file(storage_name, payload, extracted.mime_type)
                 document_id = supabase_backend.create_document(
                     user["_access_token"], title=title.strip(), content=extracted.content,
                     access_scope=access_scope, department_id=resolved_department_id,
@@ -704,8 +708,17 @@ def create_app(
                     ],
                 )
             except Exception:
-                # The source blob is orphaned only on an exceptional write path;
-                # an operator can safely reconcile it by its unreferenced path.
+                # The storage/object and DB writes are separate services, so
+                # compensate on every failed step instead of leaving orphans.
+                if document_id:
+                    try:
+                        supabase_backend.delete_document_as_service(str(document_id))
+                    except Exception:
+                        pass
+                try:
+                    supabase_backend.delete_document_file(storage_name)
+                except Exception:
+                    pass
                 raise
             supabase_backend.audit(
                 user["_access_token"], actor_id=str(user["id"]), action="upload",

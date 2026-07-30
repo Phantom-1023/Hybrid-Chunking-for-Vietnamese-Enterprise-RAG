@@ -91,6 +91,20 @@ def test_manager_uploads_csv_and_citation_opens_original_file(tmp_path, monkeypa
         assert original.status_code == 200
         assert b"Phep nam" in original.content
 
+        vietnamese_name = "de-an & ban nhap.txt"
+        unicode_upload = client.post(
+            "/api/documents/upload",
+            headers=manager_headers,
+            data={"title": "Tài liệu tiếng Việt", "access_scope": "department", "department_id": str(hr_id)},
+            files={"file": (vietnamese_name, "Nội dung thử nghiệm", "text/plain")},
+        )
+        assert unicode_upload.status_code == 201, unicode_upload.text
+        unicode_id = unicode_upload.json()["id"]
+        unicode_detail = client.get(f"/api/documents/{unicode_id}", headers=manager_headers).json()
+        assert unicode_detail["source_name"] == vietnamese_name
+        stored_names = [path.name for path in (tmp_path / "uploads").rglob("*") if path.is_file()]
+        assert all(name.isascii() for name in stored_names)
+
         forbidden = client.post(
             "/api/documents/upload",
             headers=manager_headers,

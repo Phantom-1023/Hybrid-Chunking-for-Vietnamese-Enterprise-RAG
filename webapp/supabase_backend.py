@@ -518,6 +518,12 @@ class SupabaseBackend:
     def delete_document(self, token: str, document_id: str) -> None:
         self._request("DELETE", "/rest/v1/documents", token=token, params={"id": f"eq.{document_id}"})
 
+    def delete_document_as_service(self, document_id: str) -> None:
+        """Compensating cleanup for a failed multi-step server upload."""
+        self._request(
+            "DELETE", "/rest/v1/documents", service=True, params={"id": f"eq.{document_id}"}
+        )
+
     def update_document(
         self, token: str, document_id: str, *, title: str, access_scope: str, department_id: str | int | None
     ) -> dict[str, Any]:
