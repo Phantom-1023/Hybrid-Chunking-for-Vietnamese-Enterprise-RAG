@@ -302,7 +302,8 @@ phải khóa thêm prompt, LLM, judge model và chi phí trước khi dùng RAGA
 - Chưa có full RAGAS cho faithfulness và answer relevancy.
 - Chưa chứng minh document-domain generalization.
 - Public preview chưa bundle fine-tuned checkpoint lớn.
-- Permanent admin cần user tự bootstrap bằng credential không ghi vào log/Git.
+- Permanent admin đã bootstrap; public login và trang Quản trị đã kiểm chứng.
+  Credential không được ghi vào report, artifact, log hoặc Git.
 - Render Free có cold start và không đại diện production infrastructure.
 - Chưa có load test dài, monitoring, backup/restore drill hoặc penetration test.
 - Figma là editable product board, chưa phải componentized production system.

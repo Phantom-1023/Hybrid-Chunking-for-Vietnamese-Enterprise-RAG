@@ -25,6 +25,7 @@ evidence có citation.
 | Public preview | Render HTTP 200 + Supabase health | `artifacts/web/web_smoke.json` |
 | Supabase schema/RLS | 4 bảng bật RLS; 9 policy; audit RPC | `artifacts/web/supabase_schema_smoke.json` |
 | Supabase live canary | HR ↔ Finance denial; session-switch privacy pass | `artifacts/web/supabase_live_canary.json` |
+| Permanent admin | bootstrap + public login + admin page pass | `artifacts/web/permanent_admin_smoke.json` |
 | Thiết kế | editable Figma product board | `artifacts/design/figma_delivery.json` |
 | Slide bảo vệ | 11 slide, render/overflow QA pass | `CAPSTONE_OS/04_OUTPUT/slides/RAG_ENTERPRISE_FINAL_DEFENSE.pptx` |
 | Báo cáo kỹ thuật | final draft đồng bộ evidence/limitations | `CAPSTONE_OS/04_OUTPUT/report/FINAL_REPORT_DRAFT.md`, `VIETNAMESE_ENTERPRISE_RAG_FINAL_REPORT.docx` |
@@ -46,6 +47,6 @@ evidence có citation.
 - Figma product board: pass v0.
 - Supabase schema/RLS + runtime adapter + live two-user RLS canary: pass.
 - Same-browser logout/login privacy: pass sau bản vá `0862b89`.
-- Public preview: pass HTTP health; permanent user-owned admin bootstrap còn pending.
+- Public preview: HTTP health, permanent admin bootstrap, login và admin page pass.
 - Slide chính thức và final report Markdown/DOCX: pass; cùng dùng evidence index
   làm bảng số liệu khóa.

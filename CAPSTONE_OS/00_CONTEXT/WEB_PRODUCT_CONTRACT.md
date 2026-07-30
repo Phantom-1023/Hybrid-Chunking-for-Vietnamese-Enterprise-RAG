@@ -1,6 +1,6 @@
 # WEB PRODUCT CONTRACT
 
-Status: `PUBLIC DEMO DEPLOYED / ADMIN BOOTSTRAP PENDING`
+Status: `PUBLIC DEMO DEPLOYED / PERMANENT ADMIN VERIFIED`
 
 ## Product boundary
 
@@ -43,9 +43,9 @@ không nhận tài liệu Tài chính dù câu hỏi khớp mạnh với nội d
 - Audit event đi qua RPC tự lấy `auth.uid()`; authenticated user không có quyền
   insert trực tiếp để giả actor.
 - Mock-transport integration test chứng minh user bearer đi vào PostgREST/RLS
-  trước khi candidate được chuyển cho reranker. Live account login chưa test,
-  nên chưa claim Supabase end-to-end production.
+  trước khi candidate được chuyển cho reranker. Permanent admin login và
+  authorization đã pass trên public preview; chưa claim end-to-end production.
 - `render.yaml` dùng Supabase backend và yêu cầu secret qua dashboard; không đưa
   password/key vào file hoặc Git.
 - Chưa claim production readiness hoặc 20-user sustained capacity. Public
-  preview chưa có fine-tuned checkpoint và chưa bootstrap admin.
+  preview chưa bundle fine-tuned checkpoint do giới hạn tài nguyên deploy free.

@@ -16,11 +16,12 @@
     "health_http_status": 200,
     "auth": "supabase_auth",
     "persistence": "supabase_postgres_rls",
-    "admin_bootstrap_completed": false,
+    "admin_bootstrap_completed": true,
+    "admin_public_login": "pass",
+    "admin_page_authorization": "pass",
     "limitations": [
       "Free instance can spin down after inactivity.",
-      "Fine-tuned checkpoint is not bundled in the public preview.",
-      "Initial admin requires one secure user-entered bootstrap."
+      "Fine-tuned checkpoint is not bundled in the public preview."
     ]
   },
   "pipeline": {
@@ -64,6 +65,12 @@
     "cross_department_retrieval_leak": false,
     "conversation_cleared_on_user_switch": true,
     "temporary_rows_removed_after_test": true
+  },
+  "permanent_admin_smoke": {
+    "status": "pass",
+    "public_login": true,
+    "admin_navigation_visible": true,
+    "setup_needs_setup": false
   },
   "claim_boundary": "Single-machine 20-request smoke, not a production capacity or sustained load test."
 }

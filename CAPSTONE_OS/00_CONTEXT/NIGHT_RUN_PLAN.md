@@ -99,8 +99,9 @@ P4/P5 evidence:
 - Render Free public preview đã live tại
   `https://vietnamese-enterprise-rag-demo.onrender.com`; homepage và health
   endpoint HTTP 200, chạy Supabase Auth/Postgres RLS.
-- Permanent user-owned admin bootstrap và fine-tuned checkpoint trên public
-  preview còn pending.
+- Permanent admin bootstrap, public login và trang Quản trị đã pass.
+- Fine-tuned checkpoint trên public preview còn pending do giới hạn tài nguyên;
+  runtime local/checkpoint evidence vẫn là nguồn claim khoa học.
 - Figma product board 4.800×1.120 đã tạo trong tài khoản user: system flow,
   login, chat/citation, admin/ACL và document management.
 - Font web/Figma được chốt `Inter`; Figma đã thay font và visual check pass.

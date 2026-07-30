@@ -92,8 +92,8 @@ docker run --rm -p 8000:8000 vietnamese-enterprise-rag:web-demo
 - Public preview:
   [vietnamese-enterprise-rag-demo.onrender.com](https://vietnamese-enterprise-rag-demo.onrender.com)
   — homepage và `/api/health` đã đạt HTTP 200, chạy Supabase Auth/Postgres RLS.
-- Render Free có thể sleep; admin bootstrap chưa thực hiện và fine-tuned
-  checkpoint không được bundle trong preview nhẹ.
+- Render Free có thể sleep; permanent admin/public login đã kiểm chứng, nhưng
+  fine-tuned checkpoint không được bundle trong preview nhẹ.
 - Docker đã build và health-check local; 20 request đồng thời đạt 20/20 HTTP
   200 trên máy thử nghiệm. Đây không phải production capacity claim.
 - Supabase managed schema có 4 bảng và RLS đã được áp dụng/kiểm chứng. Web có
@@ -101,8 +101,8 @@ docker run --rm -p 8000:8000 vietnamese-enterprise-rag:web-demo
   đi tới RLS trước reranker.
 - Live canary bằng 1 admin, 2 member, 2 phòng ban và 2 tài liệu đã pass hai chiều:
   HR không list/retrieve Finance và Finance không list/retrieve HR. Canary data
-  đã được xóa sạch sau test. Permanent admin do user sở hữu vẫn cần bootstrap
-  bằng credential nhập trực tiếp, không ghi vào Git/log.
+  đã được xóa sạch sau test. Permanent admin sau đó đã bootstrap riêng; public
+  login và trang Quản trị đều pass. Credential không được ghi vào Git/log.
 
 ## Nguồn sự thật
 

@@ -92,8 +92,8 @@ Chỉ cần mở các nguồn sau:
 Các README/STATE/PROGRESS hoặc benchmark lịch sử không được dùng làm claim nếu
 chưa đối chiếu với evidence index.
 
-## 8. Current remaining human gate
+## 8. Human gate đã hoàn tất
 
-Public preview đã pass health và live canary bằng tài khoản tạm. Tài khoản tạm
-đã được dọn sạch. User cần tự nhập credential để tạo permanent admin; credential
-không được ghi vào chat, file, log hoặc Git.
+Public preview đã pass health và live canary bằng tài khoản tạm; toàn bộ dữ liệu
+tạm đã được dọn sạch. Permanent admin đã bootstrap riêng và public login/trang
+Quản trị đều pass. Credential không được ghi vào file, artifact, log hoặc Git.

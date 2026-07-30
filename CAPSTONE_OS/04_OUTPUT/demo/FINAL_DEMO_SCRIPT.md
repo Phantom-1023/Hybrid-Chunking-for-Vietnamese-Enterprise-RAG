@@ -55,8 +55,8 @@ Nói rõ đây là smoke test một máy, không phải cam kết production.
 
 “Đóng góp chính là reranker fine-tuned được tích hợp thật vào retrieval, có
 đánh giá trước/sau và ACL-first. MVP đã chạy local/Docker, có Supabase RLS
-live canary và public preview. Bước tiếp theo là permanent admin bootstrap,
-đóng gói checkpoint cho môi trường có đủ tài nguyên và đánh giá generation/RAGAS.”
+live canary, permanent admin và public preview. Bước tiếp theo là đóng gói
+checkpoint cho môi trường có đủ tài nguyên và đánh giá generation/RAGAS.”
 
 ## Fallback
 

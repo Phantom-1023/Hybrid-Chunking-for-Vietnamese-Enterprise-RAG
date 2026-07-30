@@ -48,5 +48,5 @@
     "frontend_session_switch_clears_previous_conversation": true,
     "cleanup_verified_zero_remaining_test_rows": true
   },
-  "claim_boundary": "Real-user Supabase Auth, two-department RLS, ACL-before-retrieval, and same-browser session switching are verified on the public preview. A permanent user-owned admin bootstrap is still pending."
+  "claim_boundary": "Real-user Supabase Auth, two-department RLS, ACL-before-retrieval, same-browser session switching, permanent admin bootstrap, and public admin login are verified on the public preview."
 }
