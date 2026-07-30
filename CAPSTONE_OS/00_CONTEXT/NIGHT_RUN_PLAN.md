@@ -84,6 +84,9 @@ P4/P5 evidence:
   Đây chỉ là concurrency smoke, không phải production capacity claim.
 - Docker image `vietnamese-enterprise-rag:web-demo` build pass; container HTTP
   health pass và Docker health `healthy`.
+- Supabase managed project healthy; migration tạo 4 bảng và bật RLS pass.
+  Policy count đã kiểm chứng: audit 2, department 2, document 4, profile 2.
+- Web runtime vẫn dùng SQLite; Supabase Auth/Postgres integration chưa claim.
 - `render.yaml` đã có cho preview; chưa claim deployed URL.
 - Figma product board 4.800×1.120 đã tạo trong tài khoản user: system flow,
   login, chat/citation, admin/ACL và document management.

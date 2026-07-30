@@ -74,6 +74,8 @@ docker run --rm -p 8000:8000 vietnamese-enterprise-rag:web-demo
 - `render.yaml` là cấu hình preview, chưa phải bằng chứng đã deploy.
 - Docker đã build và health-check local; 20 request đồng thời đạt 20/20 HTTP
   200 trên máy thử nghiệm. Đây không phải production capacity claim.
+- Supabase managed schema có 4 bảng và RLS đã được áp dụng/kiểm chứng; web hiện
+  vẫn dùng SQLite cho tới khi Supabase Auth/Postgres integration test pass.
 
 ## Nguồn sự thật
 

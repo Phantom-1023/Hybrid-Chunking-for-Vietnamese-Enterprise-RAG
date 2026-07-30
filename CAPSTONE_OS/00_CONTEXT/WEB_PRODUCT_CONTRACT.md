@@ -33,7 +33,10 @@ không nhận tài liệu Tài chính dù câu hỏi khớp mạnh với nội d
 - `docker/Dockerfile.web` là image demo tối giản.
 - `render.yaml` là cấu hình preview; free instance có thể sleep và filesystem có
   thể không bền.
-- Supabase là target cho Auth/Postgres/RLS bền hơn. Chưa tạo project cho tới khi
-  password được nhập qua UI/secret field mà không đi qua file, log hoặc commit.
+- Supabase project đã healthy; migration tạo `departments`, `profiles`,
+  `documents`, `audit_logs` và bật RLS đã chạy pass. Truy vấn kiểm chứng trả đủ
+  4 bảng với 2/2/4/2 policy.
+- Web runtime hiện vẫn dùng SQLite. Chưa claim Supabase integration cho tới khi
+  Auth/Postgres end-to-end test pass; không đưa password/key vào file hoặc Git.
 - Chưa claim production readiness, 20-user capacity hoặc deployed URL trước khi
   có smoke/load evidence thật.

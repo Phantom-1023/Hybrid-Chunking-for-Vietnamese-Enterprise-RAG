@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "run_date": "2026-07-30",
+  "project_health": "healthy",
+  "migration": "supabase/migrations/20260730193000_enterprise_acl.sql",
+  "verification": [
+    {
+      "table": "audit_logs",
+      "rls_enabled": true,
+      "policy_count": 2
+    },
+    {
+      "table": "departments",
+      "rls_enabled": true,
+      "policy_count": 2
+    },
+    {
+      "table": "documents",
+      "rls_enabled": true,
+      "policy_count": 4
+    },
+    {
+      "table": "profiles",
+      "rls_enabled": true,
+      "policy_count": 2
+    }
+  ],
+  "claim_boundary": "Managed schema and RLS are provisioned; the current web runtime still uses SQLite until Supabase Auth/Postgres integration tests pass."
+}
