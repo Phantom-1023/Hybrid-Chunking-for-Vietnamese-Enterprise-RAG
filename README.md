@@ -109,6 +109,7 @@ docker run --rm -p 8000:8000 vietnamese-enterprise-rag:web-demo
 - Kế hoạch/chứng cứ: `CAPSTONE_OS/00_CONTEXT/NIGHT_RUN_PLAN.md`
 - Product contract: `CAPSTONE_OS/00_CONTEXT/WEB_PRODUCT_CONTRACT.md`
 - Gói bảo vệ cuối: `CAPSTONE_OS/04_OUTPUT/final/FINAL_EVIDENCE_INDEX.md`
+- Báo cáo kỹ thuật: `CAPSTONE_OS/04_OUTPUT/report/FINAL_REPORT_DRAFT.md`
 - Hướng dẫn demo: `CAPSTONE_OS/04_OUTPUT/demo/FINAL_DEMO_SCRIPT.md`
 - Hỏi đáp hội đồng: `CAPSTONE_OS/04_OUTPUT/defense/FINAL_DEFENSE_QA.md`
 

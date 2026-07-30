@@ -85,8 +85,9 @@ Chỉ cần mở các nguồn sau:
 
 1. `CAPSTONE_OS/00_CONTEXT/NIGHT_RUN_PLAN.md`
 2. `CAPSTONE_OS/04_OUTPUT/final/FINAL_EVIDENCE_INDEX.md`
-3. `CAPSTONE_OS/04_OUTPUT/demo/FINAL_DEMO_SCRIPT.md`
-4. `CAPSTONE_OS/04_OUTPUT/defense/ONE_PAGE_LAST_MINUTE_REVIEW.md`
+3. `CAPSTONE_OS/04_OUTPUT/report/FINAL_REPORT_DRAFT.md`
+4. `CAPSTONE_OS/04_OUTPUT/demo/FINAL_DEMO_SCRIPT.md`
+5. `CAPSTONE_OS/04_OUTPUT/defense/ONE_PAGE_LAST_MINUTE_REVIEW.md`
 
 Các README/STATE/PROGRESS hoặc benchmark lịch sử không được dùng làm claim nếu
 chưa đối chiếu với evidence index.
