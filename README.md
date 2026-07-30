@@ -38,8 +38,10 @@ Web FastAPI hiện có:
 - chat, citation, quản lý tài liệu và audit log;
 - ACL lọc trong SQL **trước** BM25/reranker.
 
-Integration test chứng minh user Nhân sự không nhìn thấy hoặc retrieve được tài
-liệu Tài chính. Mật khẩu được băm PBKDF2-SHA256; không lưu plaintext.
+Integration test và live Supabase canary chứng minh user Nhân sự không nhìn thấy
+hoặc retrieve được tài liệu Tài chính và ngược lại. Local fallback băm mật khẩu
+bằng PBKDF2-SHA256; managed preview dùng Supabase Auth. Frontend xóa toàn bộ
+conversation/state theo user khi logout hoặc đổi tài khoản.
 
 ## Chạy nhanh
 
@@ -76,7 +78,7 @@ Chạy test:
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-Kết quả gần nhất: **61 passed**, 1 cảnh báo deprecation từ Pydantic.
+Kết quả gần nhất: **63 passed**, 1 cảnh báo deprecation từ Pydantic.
 
 ## Docker và thiết kế
 
@@ -96,8 +98,11 @@ docker run --rm -p 8000:8000 vietnamese-enterprise-rag:web-demo
   200 trên máy thử nghiệm. Đây không phải production capacity claim.
 - Supabase managed schema có 4 bảng và RLS đã được áp dụng/kiểm chứng. Web có
   runtime adapter Supabase Auth/PostgREST; test xác nhận access token của user
-  đi tới RLS trước reranker. Live account login vẫn cần test trước khi claim
-  Supabase end-to-end.
+  đi tới RLS trước reranker.
+- Live canary bằng 1 admin, 2 member, 2 phòng ban và 2 tài liệu đã pass hai chiều:
+  HR không list/retrieve Finance và Finance không list/retrieve HR. Canary data
+  đã được xóa sạch sau test. Permanent admin do user sở hữu vẫn cần bootstrap
+  bằng credential nhập trực tiếp, không ghi vào Git/log.
 
 ## Nguồn sự thật
 
