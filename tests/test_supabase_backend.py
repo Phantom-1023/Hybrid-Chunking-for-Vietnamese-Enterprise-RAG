@@ -179,17 +179,16 @@ def test_new_opaque_secret_key_is_not_misused_as_user_bearer():
     assert "authorization" not in captured[0].headers
 
 
-def test_document_write_uses_server_key_after_app_authorization():
+def test_document_write_uses_authenticated_authorization_rpc():
     captured = []
 
     def handler(request: httpx.Request):
         captured.append(request)
-        return _json_response([{"id": "document-1"}], status_code=201)
+        return _json_response("document-1", status_code=200)
 
     backend = SupabaseBackend(
         "https://project.example.test",
         "anon-test-key",
-        service_role_key="service-test-key",
         client=httpx.Client(transport=httpx.MockTransport(handler)),
     )
 
@@ -203,5 +202,5 @@ def test_document_write_uses_server_key_after_app_authorization():
     )
 
     assert document_id == "document-1"
-    assert captured[0].headers["authorization"] == "Bearer service-test-key"
-    assert captured[0].headers["apikey"] == "service-test-key"
+    assert captured[0].url.path == "/rest/v1/rpc/create_authorized_document"
+    assert captured[0].headers["authorization"] == "Bearer user-access-token"

@@ -455,30 +455,27 @@ class SupabaseBackend:
         storage_path: str = "",
         checksum: str = "",
     ) -> str:
-        # Upload authorization is enforced by the FastAPI service before this
-        # call.  Persist with the server-only key: a user JWT can read through
-        # RLS, but PostgREST otherwise evaluates a multi-table insert policy
-        # against a request context that is not stable across Auth versions.
-        # Retrieval remains user-token/RLS scoped in allowed_document_chunks().
-        rows = self._request(
+        # The RPC verifies owner, active role, and manager membership inside
+        # Postgres.  It avoids a recursive RLS evaluation while keeping the
+        # authenticated user as the authorization principal.
+        document_id = self._request(
             "POST",
-            "/rest/v1/documents",
-            service=True,
-            headers={"Prefer": "return=representation"},
+            "/rest/v1/rpc/create_authorized_document",
+            token=token,
             json={
-                "title": title,
-                "content": content,
-                "scope": access_scope,
-                "department_id": department_id,
-                "owner_id": owner_id,
-                "source_name": source_name,
-                "mime_type": mime_type,
-                "storage_path": storage_path,
-                "checksum": checksum,
-                "processing_status": "ready",
+                "p_title": title,
+                "p_content": content,
+                "p_scope": access_scope,
+                "p_department_id": department_id,
+                "p_owner_id": owner_id,
+                "p_source_name": source_name,
+                "p_mime_type": mime_type,
+                "p_storage_path": storage_path,
+                "p_checksum": checksum,
+                "p_processing_status": "ready",
             },
         ).json()
-        return str(rows[0]["id"])
+        return str(document_id)
 
     def create_document_chunks(self, document_id: str, chunks: list[dict[str, Any]]) -> None:
         """Only trusted server code creates chunks after parsing an authorized upload."""
