@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "strategy": "in-record-negatives-v1",
+  "label_contract": "context-zero-verified",
+  "split_source_sha256": "8758e3864316efa10efe584c8fa39e49c4afd11465acad7c190477cbcfe839b9",
+  "splits": {
+    "train": {
+      "queries": 913,
+      "positive_pairs": 913,
+      "negative_pairs": 3651,
+      "multiple_positive_exclusions": 1,
+      "duplicate_negative_exclusions": 0,
+      "pair_hashes": 4564
+    },
+    "dev": {
+      "queries": 114,
+      "positive_pairs": 114,
+      "negative_pairs": 455,
+      "multiple_positive_exclusions": 1,
+      "duplicate_negative_exclusions": 0,
+      "pair_hashes": 569
+    },
+    "test": {
+      "queries": 114,
+      "positive_pairs": 114,
+      "negative_pairs": 456,
+      "multiple_positive_exclusions": 0,
+      "duplicate_negative_exclusions": 0,
+      "pair_hashes": 570
+    }
+  },
+  "cross_split_pair_conflicts": {
+    "train_vs_dev": 0,
+    "train_vs_test": 0,
+    "dev_vs_test": 0
+  },
+  "hard_negative_rule": "Only train queries may be used for train hard-negative mining.",
+  "claim_boundary": "Initial supervised pairs; hard negatives are added after first-stage retrieval is frozen."
+}

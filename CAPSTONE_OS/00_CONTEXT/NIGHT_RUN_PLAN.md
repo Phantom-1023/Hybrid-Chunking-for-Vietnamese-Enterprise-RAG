@@ -21,8 +21,8 @@ không phá MVP hiện tại và không claim vượt quá bằng chứng.
 | Pha | Việc chính | Gate bắt buộc | Output |
 |---|---|---|---|
 | P0 — PASS | Git/worktree safety, environment, source-of-truth | Không mất thay đổi cũ; không chạm `main` | `review2-mvp-demo`, Python 3.11 `.venv`, 6 tests pass, secret scan sạch |
-| P1 | Dataset audit, split, dense/BM25/Hybrid baseline | Leakage checks và targeted tests pass | Locked test + baseline metrics |
-| P2 | Smoke train rồi fine-tune reranker | Chọn checkpoint bằng validation | Checkpoint/history/SHA256 |
+| P1 — PASS | Dataset audit, split, dense/BM25/Hybrid baseline | Leakage checks và targeted tests pass | Locked split + real retrieval metrics |
+| P2 — ACTIVE | Smoke train rồi fine-tune reranker | Chọn checkpoint bằng validation | Checkpoint/history/SHA256 |
 | P3 | Tích hợp reranker vào query pipeline | Test chứng minh checkpoint được gọi thật | End-to-end top-20 -> top-5 |
 | P4 | FigJam/Figma và web shell | Luồng UX/ACL được duyệt bằng testable spec | Login/chat/admin/document UI |
 | P5 | Auth, department, role và document ACL | Cross-department denial test pass | Multi-user MVP |
@@ -37,6 +37,19 @@ P0 evidence:
 - `scripts/run_safe_checks.ps1`: preflight pass, secret scan 0 hit, 4 tests pass.
 - `tests/test_dataset_audit.py`: 2 tests pass.
 - Active ML/web stack vẫn chưa được cài; chỉ cài theo lát cắt P1 trở đi.
+
+P1 evidence:
+
+- Dataset snapshot: 1.141 rows, 5.705 passages, 4.641 unique passages.
+- Label gate: semantic audit 50/50 `context0_positive`, 0 ambiguous, 0 fail.
+- Split: Protocol A, seed 42, train/dev/test `913/114/114`.
+- Cross-split duplicate question/pair conflicts: 0.
+- Locked-test BM25: MRR `0.660`, Hit@5 `0.974`, Recall@20 `1.000`.
+- Locked-test Dense E5: MRR `0.750`, Hit@5 `0.947`, Recall@20 `0.991`.
+- Locked-test Hybrid RRF: MRR `0.669`, Hit@5 `0.965`, Recall@20 `1.000`.
+- Hybrid dùng RRF constant 60 đã định trước; không tune bằng test.
+- P2 initial pairs: train 4.564, dev 569, test 570; raw text chỉ nằm
+  trong `.cache/reranker/groups`.
 
 ## 3. Điều phối model
 
