@@ -177,3 +177,31 @@ def test_new_opaque_secret_key_is_not_misused_as_user_bearer():
     assert status == {"needs_setup": True, "admin_setup_available": True}
     assert captured[0].headers["apikey"] == "sb_secret_example"
     assert "authorization" not in captured[0].headers
+
+
+def test_document_write_uses_server_key_after_app_authorization():
+    captured = []
+
+    def handler(request: httpx.Request):
+        captured.append(request)
+        return _json_response([{"id": "document-1"}], status_code=201)
+
+    backend = SupabaseBackend(
+        "https://project.example.test",
+        "anon-test-key",
+        service_role_key="service-test-key",
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    document_id = backend.create_document(
+        "user-access-token",
+        title="Tài liệu kiểm thử",
+        content="Nội dung kiểm thử",
+        access_scope="department",
+        department_id="department-hr",
+        owner_id="user-hr",
+    )
+
+    assert document_id == "document-1"
+    assert captured[0].headers["authorization"] == "Bearer service-test-key"
+    assert captured[0].headers["apikey"] == "service-test-key"

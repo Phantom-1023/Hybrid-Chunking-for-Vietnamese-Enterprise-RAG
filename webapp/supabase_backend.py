@@ -455,10 +455,15 @@ class SupabaseBackend:
         storage_path: str = "",
         checksum: str = "",
     ) -> str:
+        # Upload authorization is enforced by the FastAPI service before this
+        # call.  Persist with the server-only key: a user JWT can read through
+        # RLS, but PostgREST otherwise evaluates a multi-table insert policy
+        # against a request context that is not stable across Auth versions.
+        # Retrieval remains user-token/RLS scoped in allowed_document_chunks().
         rows = self._request(
             "POST",
             "/rest/v1/documents",
-            token=token,
+            service=True,
             headers={"Prefer": "return=representation"},
             json={
                 "title": title,
