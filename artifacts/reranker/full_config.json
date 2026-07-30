@@ -1,0 +1,14 @@
+{
+  "model_name": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+  "run_name": "full",
+  "epochs": 2,
+  "batch_size": 2,
+  "gradient_accumulation": 8,
+  "learning_rate": 2e-05,
+  "max_length": 256,
+  "seed": 42,
+  "device": "cuda",
+  "fp16": true,
+  "train_groups": 913,
+  "dev_groups": 114
+}
