@@ -87,12 +87,17 @@ docker run --rm -p 8000:8000 vietnamese-enterprise-rag:web-demo
 
 - Figma product/architecture board:
   [Vietnamese Enterprise RAG v0.1](https://www.figma.com/design/BmdFhMmjSLzqM6QJqje2ff/Vietnamese-Enterprise-RAG-%C2%B7-Product---Architecture-v0.1?node-id=1-2)
-- `render.yaml` là cấu hình preview, chưa phải bằng chứng đã deploy.
+- Public preview:
+  [vietnamese-enterprise-rag-demo.onrender.com](https://vietnamese-enterprise-rag-demo.onrender.com)
+  — homepage và `/api/health` đã đạt HTTP 200, chạy Supabase Auth/Postgres RLS.
+- Render Free có thể sleep; admin bootstrap chưa thực hiện và fine-tuned
+  checkpoint không được bundle trong preview nhẹ.
 - Docker đã build và health-check local; 20 request đồng thời đạt 20/20 HTTP
   200 trên máy thử nghiệm. Đây không phải production capacity claim.
 - Supabase managed schema có 4 bảng và RLS đã được áp dụng/kiểm chứng. Web có
   runtime adapter Supabase Auth/PostgREST; test xác nhận access token của user
-  đi tới RLS trước reranker. Live account login vẫn cần test trước khi deploy.
+  đi tới RLS trước reranker. Live account login vẫn cần test trước khi claim
+  Supabase end-to-end.
 
 ## Nguồn sự thật
 

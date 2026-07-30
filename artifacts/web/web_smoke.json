@@ -6,6 +6,23 @@
     "status": "ok",
     "deployment_claim": "demo_only"
   },
+  "public_preview": {
+    "provider": "render",
+    "plan": "free",
+    "url": "https://vietnamese-enterprise-rag-demo.onrender.com",
+    "branch": "review2-mvp-demo",
+    "commit": "0cc4d78",
+    "homepage_http_status": 200,
+    "health_http_status": 200,
+    "auth": "supabase_auth",
+    "persistence": "supabase_postgres_rls",
+    "admin_bootstrap_completed": false,
+    "limitations": [
+      "Free instance can spin down after inactivity.",
+      "Fine-tuned checkpoint is not bundled in the public preview.",
+      "Initial admin requires one secure user-entered bootstrap."
+    ]
+  },
   "pipeline": {
     "acl_candidates": 1,
     "method": "bm25_acl_first_then_fine_tuned_cross_encoder",

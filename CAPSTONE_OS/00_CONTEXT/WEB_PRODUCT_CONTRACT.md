@@ -1,6 +1,6 @@
 # WEB PRODUCT CONTRACT
 
-Status: `IMPLEMENTED LOCAL DEMO / DEPLOYMENT NOT YET CLAIMED`
+Status: `PUBLIC DEMO DEPLOYED / ADMIN BOOTSTRAP PENDING`
 
 ## Product boundary
 
@@ -31,8 +31,8 @@ không nhận tài liệu Tài chính dù câu hỏi khớp mạnh với nội d
 ## Deployment boundary
 
 - `docker/Dockerfile.web` là image demo tối giản.
-- `render.yaml` là cấu hình preview; free instance có thể sleep và filesystem có
-  thể không bền.
+- Render Free preview đã deploy đúng nhánh `review2-mvp-demo`; homepage và
+  `/api/health` đều HTTP 200. Free instance có thể sleep.
 - Supabase project đã healthy; migration tạo `departments`, `profiles`,
   `documents`, `audit_logs` và bật RLS đã chạy pass. Truy vấn kiểm chứng trả đủ
   4 bảng với 2/2/4/1 policy.
@@ -47,5 +47,5 @@ không nhận tài liệu Tài chính dù câu hỏi khớp mạnh với nội d
   nên chưa claim Supabase end-to-end production.
 - `render.yaml` dùng Supabase backend và yêu cầu secret qua dashboard; không đưa
   password/key vào file hoặc Git.
-- Chưa claim production readiness, 20-user capacity hoặc deployed URL trước khi
-  có smoke/load evidence thật.
+- Chưa claim production readiness hoặc 20-user sustained capacity. Public
+  preview chưa có fine-tuned checkpoint và chưa bootstrap admin.

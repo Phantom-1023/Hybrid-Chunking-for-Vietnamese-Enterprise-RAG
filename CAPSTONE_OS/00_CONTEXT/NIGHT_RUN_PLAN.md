@@ -26,7 +26,7 @@ không phá MVP hiện tại và không claim vượt quá bằng chứng.
 | P3 — PASS | Tích hợp reranker vào query pipeline | Test chứng minh checkpoint được gọi thật | End-to-end top-20 -> top-5 |
 | P4 — PASS V0 | FigJam/Figma và web shell | Luồng UX/ACL được duyệt bằng testable spec | Web + editable Figma product board |
 | P5 — PASS LOCAL | Auth, department, role và document ACL | Cross-department denial test pass | Multi-user local MVP |
-| P6 — PASS LOCAL | Docker, temporary deploy, smoke/load test | Docker local pass; deploy URL pending | Local image + preview config |
+| P6 — PASS PREVIEW | Docker, temporary deploy, smoke/load test | Local Docker + public HTTP health pass | Render Free URL |
 | P7 — PASS DRAFT | README/report/slides/demo/defense | Mọi claim trỏ được tới evidence | Canonical evidence/demo/defense pack |
 
 P0 evidence:
@@ -91,7 +91,10 @@ P4/P5 evidence:
 - Supabase adapter test xác nhận user JWT vào PostgREST/RLS trước reranker và
   service key không đi vào search. Live two-department canary chưa chạy, nên
   chưa claim Supabase end-to-end.
-- `render.yaml` đã có cho preview; chưa claim deployed URL.
+- Render Free public preview đã live tại
+  `https://vietnamese-enterprise-rag-demo.onrender.com`; homepage và health
+  endpoint HTTP 200, chạy Supabase Auth/Postgres RLS.
+- Admin bootstrap và fine-tuned checkpoint trên public preview còn pending.
 - Figma product board 4.800×1.120 đã tạo trong tài khoản user: system flow,
   login, chat/citation, admin/ACL và document management.
 - Font web/Figma được chốt `Inter`; Figma đã thay font và visual check pass.
