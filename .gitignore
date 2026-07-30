@@ -18,3 +18,23 @@ data/raw/
 Thumbs.db
 .pytest_cache/
 .streamlit/secrets.toml
+
+# Additional Python/tool caches
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.cache/
+.hf_cache/
+
+# Local training/runtime outputs
+checkpoints/
+models/
+runs/
+wandb/
+artifacts/**/checkpoint-*/
+artifacts/**/*.ckpt
+artifacts/**/*.pt
+artifacts/**/*.pth
+artifacts/**/*.safetensors
+artifacts/**/*.onnx

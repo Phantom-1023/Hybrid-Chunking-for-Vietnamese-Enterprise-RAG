@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: vietnamese-enterprise-rag-demo
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile.web
+    healthCheckPath: /api/health
+    envVars:
+      - key: WEBAPP_DATABASE_PATH
+        value: /app/data/webapp.db
+      - key: WEBAPP_TOKEN_SECRET
+        generateValue: true

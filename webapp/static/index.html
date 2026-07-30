@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>KnowledgeOS · Enterprise RAG</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <main id="auth-view" class="auth-shell">
+    <section class="auth-brand">
+      <div class="brand-mark">K</div>
+      <p class="eyebrow">Vietnamese Enterprise RAG</p>
+      <h1>Tri thức đúng người.<br>Đúng quyền. Có dẫn nguồn.</h1>
+      <p class="lead">Không gian hỏi đáp nội bộ với kiểm soát truy cập theo phòng ban và bằng chứng có thể kiểm tra.</p>
+      <div class="trust-row">
+        <span>ACL trước retrieval</span><span>Audit trail</span><span>Top-5 citations</span>
+      </div>
+    </section>
+    <section class="auth-card">
+      <div>
+        <p class="eyebrow">Đăng nhập hệ thống</p>
+        <h2>Chào mừng trở lại</h2>
+        <p class="muted">Dùng tài khoản do quản trị viên cấp.</p>
+      </div>
+      <form id="login-form">
+        <label>Email<input id="login-email" type="email" required autocomplete="username" placeholder="ban@doanhnghiep.vn"></label>
+        <label>Mật khẩu<input id="login-password" type="password" required autocomplete="current-password" placeholder="••••••••••••"></label>
+        <button class="primary" type="submit">Đăng nhập <span>→</span></button>
+      </form>
+      <button id="show-setup" class="text-button" type="button">Thiết lập quản trị viên lần đầu</button>
+      <form id="setup-form" class="hidden">
+        <div class="divider"><span>Thiết lập một lần</span></div>
+        <label>Tên hiển thị<input id="setup-name" required value="Quản trị viên"></label>
+        <label>Email<input id="setup-email" type="email" required></label>
+        <label>Mật khẩu khởi tạo<input id="setup-password" type="password" minlength="10" required></label>
+        <button class="secondary" type="submit">Tạo quản trị viên</button>
+      </form>
+      <p class="security-note">Mật khẩu được băm PBKDF2; hệ thống không lưu bản rõ.</p>
+    </section>
+  </main>
+
+  <div id="app-view" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="brand-lockup"><div class="brand-mark small">K</div><div><strong>KnowledgeOS</strong><span>Enterprise RAG</span></div></div>
+      <nav id="nav">
+        <button data-view="chat" class="active"><i>✦</i> Hỏi đáp</button>
+        <button data-view="documents"><i>▤</i> Tài liệu</button>
+        <button data-view="admin" data-admin-only><i>⌘</i> Quản trị</button>
+        <button data-view="audit" data-admin-only><i>◫</i> Nhật ký</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="system-state"><span class="pulse"></span><div><strong>Hệ thống sẵn sàng</strong><small>ACL-first retrieval</small></div></div>
+        <button id="logout" class="profile"><span id="avatar">U</span><div><strong id="profile-name">User</strong><small id="profile-meta">Member</small></div><b>⋯</b></button>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div><p class="eyebrow" id="section-eyebrow">Workspace</p><h2 id="section-title">Hỏi đáp tri thức</h2></div>
+        <div class="top-actions"><span class="scope-badge" id="department-badge">Phòng ban</span><button class="icon-button" aria-label="Thông báo">◌</button></div>
+      </header>
+
+      <section id="view-chat" class="view active">
+        <div id="welcome" class="welcome">
+          <span class="spark">✦</span>
+          <h1>Bạn muốn tìm hiểu điều gì?</h1>
+          <p>Hỏi bằng tiếng Việt. Hệ thống chỉ tìm trong tài liệu bạn được phép truy cập.</p>
+          <div class="suggestions">
+            <button data-question="Chính sách nghỉ phép của nhân viên là gì?">Chính sách nghỉ phép <span>↗</span></button>
+            <button data-question="Quy trình phê duyệt tài liệu diễn ra thế nào?">Quy trình phê duyệt <span>↗</span></button>
+            <button data-question="Tóm tắt các quy định quan trọng cho nhân viên mới.">Onboarding nhân viên <span>↗</span></button>
+          </div>
+        </div>
+        <div id="conversation" class="conversation"></div>
+        <form id="ask-form" class="composer">
+          <textarea id="question" rows="1" required placeholder="Hỏi về tài liệu nội bộ…"></textarea>
+          <div class="composer-row"><span>Chỉ dùng nguồn bạn có quyền truy cập</span><button class="send" type="submit" aria-label="Gửi">↑</button></div>
+        </form>
+      </section>
+
+      <section id="view-documents" class="view">
+        <div class="section-actions"><div class="searchbox">⌕ <input id="document-filter" placeholder="Tìm trong danh sách tài liệu"></div><button id="open-document-form" class="primary compact">+ Thêm tài liệu</button></div>
+        <div class="panel table-panel">
+          <table><thead><tr><th>Tài liệu</th><th>Phạm vi</th><th>Phòng ban</th><th>Ngày tạo</th></tr></thead><tbody id="document-table"></tbody></table>
+          <div id="document-empty" class="empty hidden">Chưa có tài liệu trong phạm vi của bạn.</div>
+        </div>
+        <form id="document-form" class="drawer hidden">
+          <div class="drawer-head"><div><p class="eyebrow">Knowledge base</p><h3>Thêm tài liệu</h3></div><button type="button" data-close="document-form">×</button></div>
+          <label>Tiêu đề<input id="document-title" required></label>
+          <label>Nội dung<textarea id="document-content" rows="12" required></textarea></label>
+          <label>Phạm vi<select id="document-scope"><option value="department">Phòng ban</option><option value="organization">Toàn tổ chức</option><option value="private">Riêng tư</option></select></label>
+          <label>Phòng ban<select id="document-department"></select></label>
+          <button class="primary" type="submit">Lưu tài liệu</button>
+        </form>
+      </section>
+
+      <section id="view-admin" class="view">
+        <div class="stats">
+          <article><span>Người dùng</span><strong id="stat-users">—</strong><small>tài khoản đang quản lý</small></article>
+          <article><span>Phòng ban</span><strong id="stat-departments">—</strong><small>miền dữ liệu độc lập</small></article>
+          <article><span>Tài liệu thấy được</span><strong id="stat-documents">—</strong><small>theo quyền quản trị</small></article>
+        </div>
+        <div class="admin-grid">
+          <div class="panel"><div class="panel-head"><div><p class="eyebrow">People</p><h3>Người dùng</h3></div><button id="open-user-form" class="secondary compact">+ Mời người dùng</button></div><div id="user-list" class="rows"></div></div>
+          <div class="panel"><div class="panel-head"><div><p class="eyebrow">Access domains</p><h3>Phòng ban</h3></div></div><form id="department-form" class="inline-form"><input id="department-name" required placeholder="Tên phòng ban"><button class="secondary compact">Thêm</button></form><div id="department-list" class="chips"></div></div>
+        </div>
+        <form id="user-form" class="drawer hidden">
+          <div class="drawer-head"><div><p class="eyebrow">Identity</p><h3>Tạo người dùng</h3></div><button type="button" data-close="user-form">×</button></div>
+          <label>Họ tên<input id="user-name" required></label>
+          <label>Email<input id="user-email" type="email" required></label>
+          <label>Mật khẩu tạm<input id="user-password" type="password" minlength="10" required></label>
+          <label>Vai trò<select id="user-role"><option value="member">Thành viên</option><option value="manager">Quản lý</option><option value="admin">Quản trị viên</option></select></label>
+          <label>Phòng ban<select id="user-department"></select></label>
+          <button class="primary" type="submit">Tạo tài khoản</button>
+        </form>
+      </section>
+
+      <section id="view-audit" class="view">
+        <div class="panel table-panel"><table><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hành động</th><th>Tài nguyên</th><th>Kết quả</th></tr></thead><tbody id="audit-table"></tbody></table></div>
+      </section>
+    </main>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

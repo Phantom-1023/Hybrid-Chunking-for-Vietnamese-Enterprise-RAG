@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "file_name": "Vietnamese Enterprise RAG · Product & Architecture v0.1",
+  "file_url": "https://www.figma.com/design/BmdFhMmjSLzqM6QJqje2ff/Vietnamese-Enterprise-RAG-%C2%B7-Product---Architecture-v0.1?node-id=1-2",
+  "editor": "Figma Design",
+  "canvas": {
+    "width": 4800,
+    "height": 1120,
+    "font": "Inter"
+  },
+  "sections": [
+    "System and ACL-first retrieval flow",
+    "Login",
+    "Chat and citations",
+    "Admin and department ACL",
+    "Document management"
+  ],
+  "validation": {
+    "visible_in_figma": true,
+    "font_replacement_completed": true,
+    "source_svg_committed": true
+  },
+  "claim_boundary": "Editable imported SVG product board, not a fully componentized production design system."
+}

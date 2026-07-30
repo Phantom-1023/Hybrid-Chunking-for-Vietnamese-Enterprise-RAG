@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_date": "2026-07-30",
+  "environment": "local_windows_rtx_3050",
+  "health": {
+    "status": "ok",
+    "deployment_claim": "demo_only"
+  },
+  "pipeline": {
+    "acl_candidates": 1,
+    "method": "bm25_acl_first_then_fine_tuned_cross_encoder",
+    "candidate_k": 1,
+    "evidence_k": 1,
+    "checkpoint_sha256": "3782daf52437af2f2b0bc72a44c128dfa3845eb34b559a1ff8bb1dbcf279aa44"
+  },
+  "concurrency_smoke": {
+    "concurrent_requests": 20,
+    "http_200": 20,
+    "wall_ms": 1761.3,
+    "latency_p50_ms": 1454.9,
+    "latency_p95_ms": 1722.4,
+    "latency_max_ms": 1742.1
+  },
+  "docker": {
+    "image": "vietnamese-enterprise-rag:web-demo",
+    "build": "pass",
+    "container_http_health": "pass",
+    "docker_health": "healthy"
+  },
+  "claim_boundary": "Single-machine 20-request smoke, not a production capacity or sustained load test."
+}
