@@ -1,0 +1,29 @@
+{
+  "rows": 1141,
+  "method": {
+    "exact": "normalized full-answer substring containment",
+    "fallback_signal": "answer-token recall; diagnostic only, not a label"
+  },
+  "exact_match": {
+    "any_context_rows": 72,
+    "any_context_rate": 0.06310254163014899,
+    "context_zero_rows": 72,
+    "context_zero_rate": 0.06310254163014899,
+    "only_context_zero_rows": 70,
+    "only_later_context_rows": 0,
+    "multiple_context_rows": 2,
+    "unresolved_rows": 1069,
+    "position_counts": {
+      "0": 72,
+      "1": 1,
+      "4": 1
+    }
+  },
+  "best_answer_token_recall_position_counts": {
+    "0": 1139,
+    "1": 1,
+    "2": 1
+  },
+  "label_contract": "Exact matches identify defensible positive passages. Rows without an exact match remain unresolved and must not be silently labeled context[0].",
+  "privacy": "Aggregate counts only; no record text is printed."
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "dataset_rows": 1141,
+  "seed": 42,
+  "sample_size": 50,
+  "sample_design": {
+    "exact_context_zero_rows": 10,
+    "unresolved_rows_spread_across_dataset": 40
+  },
+  "classification": {
+    "context0_positive": 50,
+    "ambiguous": 0,
+    "context0_not_positive": 0
+  },
+  "aggregate_support": {
+    "exact_answer_context_zero_rows": 72,
+    "best_answer_token_recall_context_zero_rows": 1139
+  },
+  "adjudication": {
+    "reviewed_close_cases": 1,
+    "close_case_row_index": 972,
+    "close_case_hash": "8cc984507cb06e2a",
+    "final_class": "context0_positive"
+  },
+  "label_contract": {
+    "primary_positive": "context[0]",
+    "negative_candidates": "context[1:5] after deduplication",
+    "chunk_requirement": "preserve source_passage_index",
+    "safety_rule": "convert to multiple-positive if another context directly supports the answer"
+  },
+  "claim_boundary": "The dataset card does not publish a positive-passage label; this is a project experimental contract supported by aggregate and sampled semantic audit.",
+  "privacy": "Aggregate decisions only; no question, answer, or passage text is stored."
+}

@@ -20,6 +20,7 @@ class RagDatasetRecord:
     record_id: str
     question: Optional[str]
     ground_truth: Optional[str]
+    contexts: List[str]
     joined_context: str
     raw: Dict[str, Any]
 
@@ -78,20 +79,29 @@ def _normalize_record(row: Dict[str, Any], index: int) -> RagDatasetRecord:
     question = _string_or_none(row.get("question"))
     ground_truth = _first_present_string(row, ["ground_truth", "ground_truths", "answer", "answers"])
     context_value = _first_present_value(row, ["context", "contexts", "passages", "documents"])
+    contexts = context_parts(context_value)
 
     return RagDatasetRecord(
         record_id=str(row.get("id") or row.get("_id") or index),
         question=question,
         ground_truth=ground_truth,
-        joined_context=join_context(context_value),
+        contexts=contexts,
+        joined_context=join_context(contexts),
         raw=row,
     )
 
 
 def join_context(context_value: Any) -> str:
     """Join dataset context/passages into one clean text string."""
+    parts = context_parts(context_value)
+    joined = "\n\n".join(part.strip() for part in parts if part and part.strip())
+    return re.sub(r"[ \t]+", " ", joined).strip()
+
+
+def context_parts(context_value: Any) -> List[str]:
+    """Normalize context/passages while preserving their original order."""
     if context_value is None:
-        return ""
+        return []
 
     if isinstance(context_value, str):
         parts = [context_value]
@@ -100,8 +110,11 @@ def join_context(context_value: Any) -> str:
     else:
         parts = [_context_part_to_text(context_value)]
 
-    joined = "\n\n".join(part.strip() for part in parts if part and part.strip())
-    return re.sub(r"[ \t]+", " ", joined).strip()
+    return [
+        re.sub(r"[ \t]+", " ", part.strip())
+        for part in parts
+        if part and part.strip()
+    ]
 
 
 def _context_part_to_text(value: Any) -> str:

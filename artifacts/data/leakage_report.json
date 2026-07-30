@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "rows": 1141,
+  "unique_question_hashes": 1141,
+  "duplicate_question_groups": 0,
+  "cross_split_question_conflicts": 0,
+  "query_passage_rule": "Pairs inherit the query split; train hard negatives come from train queries only.",
+  "verdict": "pass"
+}
