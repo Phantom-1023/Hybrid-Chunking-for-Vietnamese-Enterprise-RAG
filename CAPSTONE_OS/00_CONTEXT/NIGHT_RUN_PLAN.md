@@ -22,12 +22,12 @@ không phá MVP hiện tại và không claim vượt quá bằng chứng.
 |---|---|---|---|
 | P0 — PASS | Git/worktree safety, environment, source-of-truth | Không mất thay đổi cũ; không chạm `main` | `review2-mvp-demo`, Python 3.11 `.venv`, 6 tests pass, secret scan sạch |
 | P1 — PASS | Dataset audit, split, dense/BM25/Hybrid baseline | Leakage checks và targeted tests pass | Locked split + real retrieval metrics |
-| P2 — ACTIVE | Smoke train rồi fine-tune reranker | Chọn checkpoint bằng validation | Checkpoint/history/SHA256 |
-| P3 | Tích hợp reranker vào query pipeline | Test chứng minh checkpoint được gọi thật | End-to-end top-20 -> top-5 |
-| P4 | FigJam/Figma và web shell | Luồng UX/ACL được duyệt bằng testable spec | Login/chat/admin/document UI |
-| P5 | Auth, department, role và document ACL | Cross-department denial test pass | Multi-user MVP |
-| P6 | Docker, temporary deploy, smoke/load test | Health check + evidence; không overclaim | Local package + URL nếu pass |
-| P7 | README/report/slides/demo/defense | Mọi claim trỏ được tới evidence | Defense-ready pack |
+| P2 — PASS | Smoke train rồi fine-tune reranker | Chọn checkpoint bằng validation | Checkpoint/history/SHA256 |
+| P3 — PASS | Tích hợp reranker vào query pipeline | Test chứng minh checkpoint được gọi thật | End-to-end top-20 -> top-5 |
+| P4 — PASS V0 | FigJam/Figma và web shell | Luồng UX/ACL được duyệt bằng testable spec | Web + editable Figma product board |
+| P5 — PASS LOCAL | Auth, department, role và document ACL | Cross-department denial test pass | Multi-user local MVP |
+| P6 — PASS LOCAL | Docker, temporary deploy, smoke/load test | Docker local pass; deploy URL pending | Local image + preview config |
+| P7 — PASS DRAFT | README/report/slides/demo/defense | Mọi claim trỏ được tới evidence | Canonical evidence/demo/defense pack |
 
 P0 evidence:
 
@@ -50,6 +50,46 @@ P1 evidence:
 - Hybrid dùng RRF constant 60 đã định trước; không tune bằng test.
 - P2 initial pairs: train 4.564, dev 569, test 570; raw text chỉ nằm
   trong `.cache/reranker/groups`.
+
+P2/P3 evidence:
+
+- Full fine-tune: 2 epochs, 572 optimizer steps, checkpoint reload pass,
+  weights changed và peak VRAM khoảng 2,38 GB.
+- Checkpoint được chọn ở epoch 1 theo validation MRR@5; SHA256
+  `3782daf52437af2f2b0bc72a44c128dfa3845eb34b559a1ff8bb1dbcf279aa44`.
+- Validation nội-record đã bão hòa ở `1.000` cho cả base và fine-tuned, nên
+  không dùng số validation này làm claim cải thiện.
+- Locked test 114 query trên cùng Hybrid RRF top-20:
+  no-rerank MRR `0.669`, MMR `0.699`, base Cross-Encoder `0.779`,
+  fine-tuned Cross-Encoder `0.945`.
+- Fine-tuned Hit@1 `0.930`, Hit@5 `0.974`; base Hit@1 `0.632`, Hit@5 `0.956`.
+- Error analysis top-5: 109 `hit->hit`, 2 `miss->hit`, 3 `miss->miss`,
+  không có `hit->miss`.
+- Runtime checksum khớp artifact; integration test chứng minh live query lấy
+  20 candidate rồi fine-tuned rerank xuống 5 evidence.
+- Claim boundary: query generalization trên cùng corpus, passage reranking;
+  chưa phải RAGAS, generation quality hoặc document generalization.
+
+P4/P5 evidence:
+
+- Web shell FastAPI có login, one-time admin setup, chat/citation, document,
+  user, phòng ban, role và audit log.
+- Password dùng salted PBKDF2; session ký HMAC có hạn dùng.
+- ACL được lọc trong SQL trước BM25/reranker.
+- Integration test: user Nhân sự không nhìn thấy và không retrieve được tài liệu
+  Tài chính; reranker spy chỉ nhận đúng tập tài liệu đã qua ACL.
+- Runtime web thật với checkpoint fine-tuned trả
+  `bm25_acl_first_then_fine_tuned_cross_encoder`.
+- 20 request đồng thời trên máy local: 20/20 HTTP 200, p95 khoảng `1.72s`.
+  Đây chỉ là concurrency smoke, không phải production capacity claim.
+- Docker image `vietnamese-enterprise-rag:web-demo` build pass; container HTTP
+  health pass và Docker health `healthy`.
+- `render.yaml` đã có cho preview; chưa claim deployed URL.
+- Figma product board 4.800×1.120 đã tạo trong tài khoản user: system flow,
+  login, chat/citation, admin/ACL và document management.
+- Font web/Figma được chốt `Inter`; Figma đã thay font và visual check pass.
+- Figma v0 là editable imported SVG board, chưa claim design system đã
+  componentize đầy đủ.
 
 ## 3. Điều phối model
 
