@@ -27,6 +27,7 @@ def test_acl_is_applied_before_search_and_admin_can_manage_users(tmp_path):
         reranker=fake_reranker,
     )
     with TestClient(app) as client:
+        assert client.head("/").status_code == 200
         setup = client.post(
             "/api/setup",
             json={
