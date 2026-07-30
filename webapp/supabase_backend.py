@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import hmac
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -211,6 +212,21 @@ class SupabaseBackend:
             raise SupabaseBackendError(401, "User is inactive")
         department = user.pop("departments", None)
         user["department_name"] = department.get("name") if department else None
+        memberships = self._request(
+            "GET",
+            "/rest/v1/department_memberships",
+            token=token,
+            params={
+                "select": "department_id,role",
+                "user_id": f"eq.{auth_user['id']}",
+            },
+        ).json()
+        user["department_ids"] = [row["department_id"] for row in memberships]
+        if user.get("department_id") and user["department_id"] not in user["department_ids"]:
+            user["department_ids"].append(user["department_id"])
+        user["managed_department_ids"] = [
+            row["department_id"] for row in memberships if row["role"] == "manager"
+        ]
         user["_access_token"] = token
         return user
 
@@ -231,6 +247,66 @@ class SupabaseBackend:
             json={"name": name},
         ).json()
         return rows[0]
+
+    def update_department(self, token: str, department_id: str, name: str) -> dict[str, Any]:
+        rows = self._request(
+            "PATCH",
+            "/rest/v1/departments",
+            token=token,
+            headers={"Prefer": "return=representation"},
+            params={"id": f"eq.{department_id}"},
+            json={"name": name},
+        ).json()
+        if not rows:
+            raise SupabaseBackendError(404, "Không tìm thấy phòng ban")
+        return rows[0]
+
+    def delete_department(self, token: str, department_id: str) -> None:
+        self._request(
+            "DELETE", "/rest/v1/departments", token=token, params={"id": f"eq.{department_id}"}
+        )
+
+    def department_memberships(self, token: str, department_id: str) -> list[dict[str, Any]]:
+        return self._request(
+            "GET",
+            "/rest/v1/department_memberships",
+            token=token,
+            params={"select": "department_id,user_id,role,created_at", "department_id": f"eq.{department_id}"},
+        ).json()
+
+    def add_membership(self, token: str, department_id: str, user_id: str, role: str) -> None:
+        self._request(
+            "POST",
+            "/rest/v1/department_memberships",
+            token=token,
+            headers={"Prefer": "return=minimal"},
+            json={"department_id": department_id, "user_id": user_id, "role": role},
+        )
+
+    def update_membership(self, token: str, department_id: str, user_id: str, role: str) -> None:
+        self._request(
+            "PATCH",
+            "/rest/v1/department_memberships",
+            token=token,
+            params={"department_id": f"eq.{department_id}", "user_id": f"eq.{user_id}"},
+            json={"role": role},
+        )
+
+    def delete_membership(self, token: str, department_id: str, user_id: str) -> None:
+        self._request(
+            "DELETE",
+            "/rest/v1/department_memberships",
+            token=token,
+            params={"department_id": f"eq.{department_id}", "user_id": f"eq.{user_id}"},
+        )
+
+    def documents_in_department(self, token: str, department_id: str) -> list[dict[str, Any]]:
+        return self._request(
+            "GET",
+            "/rest/v1/documents",
+            token=token,
+            params={"select": "id", "department_id": f"eq.{department_id}", "limit": "1"},
+        ).json()
 
     def list_users(self, token: str) -> list[dict[str, Any]]:
         rows = self._request(
@@ -286,6 +362,17 @@ class SupabaseBackend:
             raise
         return str(user_id)
 
+    def update_profile(self, user_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+        allowed = {"display_name", "role", "department_id", "is_active"}
+        payload = {key: value for key, value in updates.items() if key in allowed}
+        rows = self._request(
+            "PATCH", "/rest/v1/profiles", service=True,
+            headers={"Prefer": "return=representation"}, params={"id": f"eq.{user_id}"}, json=payload,
+        ).json()
+        if not rows:
+            raise SupabaseBackendError(404, "Không tìm thấy người dùng")
+        return rows[0]
+
     def _delete_auth_user(self, user_id: str) -> None:
         try:
             self._request(
@@ -304,7 +391,7 @@ class SupabaseBackend:
             "/rest/v1/documents",
             token=token,
             params={
-                "select": "id,title,content,scope,department_id,owner_id,created_at,departments(name)",
+                "select": "id,title,content,scope,department_id,owner_id,source_name,mime_type,storage_path,processing_status,checksum,created_at,departments(name),document_label_links(document_labels(id,name,color))",
                 "order": "created_at",
             },
         ).json()
@@ -312,7 +399,47 @@ class SupabaseBackend:
             department = row.pop("departments", None)
             row["department_name"] = department.get("name") if department else None
             row["access_scope"] = row.pop("scope")
+            links = row.pop("document_label_links", []) or []
+            row["labels"] = [link["document_labels"] for link in links if link.get("document_labels")]
         return rows
+
+    def allowed_document_chunks(self, token: str) -> list[dict[str, Any]]:
+        rows = self._request(
+            "GET",
+            "/rest/v1/document_chunks",
+            token=token,
+            params={
+                "select": "id,document_id,content,locator,chunk_index,documents(id,title,source_name,scope,department_id,departments(name))",
+                "order": "document_id,chunk_index",
+            },
+        ).json()
+        normalized: list[dict[str, Any]] = []
+        for row in rows:
+            document = row.pop("documents", None) or {}
+            department = document.pop("departments", None) or {}
+            normalized.append(
+                {
+                    **row,
+                    "title": document.get("title", "Tài liệu"),
+                    "source_name": document.get("source_name", ""),
+                    "access_scope": document.get("scope", "department"),
+                    "department_id": document.get("department_id"),
+                    "department_name": department.get("name"),
+                }
+            )
+        return normalized
+
+    def document_chunks(self, token: str, document_id: str) -> list[dict[str, Any]]:
+        return self._request(
+            "GET",
+            "/rest/v1/document_chunks",
+            token=token,
+            params={
+                "select": "id,locator,chunk_index,content",
+                "document_id": f"eq.{document_id}",
+                "order": "chunk_index",
+            },
+        ).json()
 
     def create_document(
         self,
@@ -323,6 +450,10 @@ class SupabaseBackend:
         access_scope: str,
         department_id: str | int | None,
         owner_id: str,
+        source_name: str = "",
+        mime_type: str = "text/plain",
+        storage_path: str = "",
+        checksum: str = "",
     ) -> str:
         rows = self._request(
             "POST",
@@ -335,9 +466,95 @@ class SupabaseBackend:
                 "scope": access_scope,
                 "department_id": department_id,
                 "owner_id": owner_id,
+                "source_name": source_name,
+                "mime_type": mime_type,
+                "storage_path": storage_path,
+                "checksum": checksum,
+                "processing_status": "ready",
             },
         ).json()
         return str(rows[0]["id"])
+
+    def create_document_chunks(self, document_id: str, chunks: list[dict[str, Any]]) -> None:
+        """Only trusted server code creates chunks after parsing an authorized upload."""
+        self._request(
+            "POST",
+            "/rest/v1/document_chunks",
+            service=True,
+            headers={"Prefer": "return=minimal"},
+            json=[{**chunk, "document_id": document_id} for chunk in chunks],
+        )
+
+    def upload_document_file(self, storage_path: str, payload: bytes, mime_type: str) -> None:
+        self._request(
+            "POST",
+            f"/storage/v1/object/enterprise-documents/{quote(storage_path, safe='/')}",
+            service=True,
+            headers={"Content-Type": mime_type, "x-upsert": "false"},
+            content=payload,
+        )
+
+    def signed_document_url(self, storage_path: str) -> str:
+        response = self._request(
+            "POST",
+            f"/storage/v1/object/sign/enterprise-documents/{quote(storage_path, safe='/')}",
+            service=True,
+            json={"expiresIn": 60},
+        ).json()
+        signed = response.get("signedURL") or response.get("signedUrl")
+        if not signed:
+            raise SupabaseBackendError(503, "Không tạo được liên kết tải tài liệu")
+        return f"{self.url}/storage/v1{signed}" if signed.startswith("/") else str(signed)
+
+    def delete_document_file(self, storage_path: str) -> None:
+        self._request(
+            "DELETE",
+            f"/storage/v1/object/enterprise-documents/{quote(storage_path, safe='/')}",
+            service=True,
+        )
+
+    def delete_document(self, token: str, document_id: str) -> None:
+        self._request("DELETE", "/rest/v1/documents", token=token, params={"id": f"eq.{document_id}"})
+
+    def update_document(
+        self, token: str, document_id: str, *, title: str, access_scope: str, department_id: str | int | None
+    ) -> dict[str, Any]:
+        rows = self._request(
+            "PATCH", "/rest/v1/documents", token=token,
+            headers={"Prefer": "return=representation"}, params={"id": f"eq.{document_id}"},
+            json={"title": title, "scope": access_scope, "department_id": department_id},
+        ).json()
+        if not rows:
+            raise SupabaseBackendError(404, "Không tìm thấy tài liệu")
+        return rows[0]
+
+    def labels(self, token: str) -> list[dict[str, Any]]:
+        return self._request("GET", "/rest/v1/document_labels", token=token, params={"select": "*", "order": "name"}).json()
+
+    def create_label(self, token: str, name: str, color: str) -> dict[str, Any]:
+        rows = self._request(
+            "POST", "/rest/v1/document_labels", token=token,
+            headers={"Prefer": "return=representation"}, json={"name": name, "color": color},
+        ).json()
+        return rows[0]
+
+    def replace_document_labels(self, document_id: str, label_ids: list[str]) -> None:
+        self._request("DELETE", "/rest/v1/document_label_links", service=True, params={"document_id": f"eq.{document_id}"})
+        if label_ids:
+            self._request(
+                "POST", "/rest/v1/document_label_links", service=True,
+                headers={"Prefer": "return=minimal"},
+                json=[{"document_id": document_id, "label_id": label_id} for label_id in label_ids],
+            )
+
+    def replace_document_grants(self, document_id: str, user_ids: list[str]) -> None:
+        self._request("DELETE", "/rest/v1/document_access_grants", service=True, params={"document_id": f"eq.{document_id}"})
+        if user_ids:
+            self._request(
+                "POST", "/rest/v1/document_access_grants", service=True,
+                headers={"Prefer": "return=minimal"},
+                json=[{"document_id": document_id, "user_id": user_id} for user_id in user_ids],
+            )
 
     def audit(
         self,

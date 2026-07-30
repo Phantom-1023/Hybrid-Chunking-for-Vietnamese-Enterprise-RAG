@@ -50,6 +50,29 @@ def test_supabase_user_token_drives_rls_before_reranking(tmp_path):
                     }
                 ]
             )
+        if request.url.path == "/rest/v1/department_memberships":
+            return _json_response([])
+        if request.url.path == "/rest/v1/document_chunks":
+            # Simulates chunks that Postgres RLS permits for this bearer.
+            return _json_response(
+                [
+                    {
+                        "id": "chunk-hr-1",
+                        "document_id": "document-hr",
+                        "content": "Nhân viên có mười hai ngày phép năm.",
+                        "locator": "Trang 1",
+                        "chunk_index": 0,
+                        "documents": {
+                            "id": "document-hr",
+                            "title": "Chính sách nhân sự",
+                            "source_name": "chinh-sach-nhan-su.pdf",
+                            "scope": "department",
+                            "department_id": "department-hr",
+                            "departments": {"name": "Nhân sự"},
+                        },
+                    }
+                ]
+            )
         if request.url.path == "/rest/v1/documents":
             # Simulates the rows that Postgres RLS permits for this bearer.
             return _json_response(
@@ -102,12 +125,16 @@ def test_supabase_user_token_drives_rls_before_reranking(tmp_path):
         )
         assert response.status_code == 200
         assert response.json()["retrieval"]["acl_candidates"] == 1
-        assert reranker.seen_document_ids == ["document-hr"]
+        assert reranker.seen_document_ids == ["chunk-hr-1"]
 
     rls_requests = [
         request
         for request in requests
-        if request.url.path in {"/rest/v1/profiles", "/rest/v1/documents"}
+        if request.url.path in {
+            "/rest/v1/profiles",
+            "/rest/v1/department_memberships",
+            "/rest/v1/document_chunks",
+        }
     ]
     assert rls_requests
     assert all(

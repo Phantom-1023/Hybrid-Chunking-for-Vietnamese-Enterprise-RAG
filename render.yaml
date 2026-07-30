@@ -17,3 +17,7 @@ services:
         sync: false
       - key: WEBAPP_ENABLE_RERANKER
         value: "false"
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_MODEL
+        value: deepseek-v4-flash
