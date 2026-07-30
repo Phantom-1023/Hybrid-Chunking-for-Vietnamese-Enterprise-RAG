@@ -54,13 +54,29 @@ $env:RERANKER_CHECKPOINT_PATH = "path-to-local-checkpoint"
 Mở `http://127.0.0.1:8000`. Nếu không có checkpoint, web hạ cấp minh bạch về
 ACL-first BM25 và trả tên phương pháp trong `retrieval.method`.
 
+Chạy với Supabase Auth/Postgres:
+
+```powershell
+$env:WEBAPP_BACKEND = "supabase"
+$env:SUPABASE_URL = "set-in-local-secret-store"
+$env:SUPABASE_PUBLISHABLE_KEY = "set-in-local-secret-store"
+$env:SUPABASE_SECRET_KEY = "server-only-admin-operations"
+$env:SUPABASE_BOOTSTRAP_TOKEN = "one-time-random-bootstrap-proof"
+.\.venv\Scripts\python.exe -m uvicorn webapp.app:app --host 127.0.0.1 --port 8000
+```
+
+`SUPABASE_SECRET_KEY` và bootstrap proof chỉ tồn tại ở server; không đưa
+vào frontend, file tracked hoặc Git. Sau bootstrap phải xoay hoặc xóa proof.
+User request được chuyển tiếp bằng access token của chính user để Postgres RLS
+lọc row trước khi retrieval chạy.
+
 Chạy test:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-Kết quả gần nhất: **58 passed**, 1 cảnh báo deprecation từ Pydantic.
+Kết quả gần nhất: **61 passed**, 1 cảnh báo deprecation từ Pydantic.
 
 ## Docker và thiết kế
 
@@ -74,8 +90,9 @@ docker run --rm -p 8000:8000 vietnamese-enterprise-rag:web-demo
 - `render.yaml` là cấu hình preview, chưa phải bằng chứng đã deploy.
 - Docker đã build và health-check local; 20 request đồng thời đạt 20/20 HTTP
   200 trên máy thử nghiệm. Đây không phải production capacity claim.
-- Supabase managed schema có 4 bảng và RLS đã được áp dụng/kiểm chứng; web hiện
-  vẫn dùng SQLite cho tới khi Supabase Auth/Postgres integration test pass.
+- Supabase managed schema có 4 bảng và RLS đã được áp dụng/kiểm chứng. Web có
+  runtime adapter Supabase Auth/PostgREST; test xác nhận access token của user
+  đi tới RLS trước reranker. Live account login vẫn cần test trước khi deploy.
 
 ## Nguồn sự thật
 

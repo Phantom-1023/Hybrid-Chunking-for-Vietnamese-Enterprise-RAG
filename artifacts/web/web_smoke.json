@@ -22,10 +22,18 @@
     "latency_max_ms": 1742.1
   },
   "docker": {
-    "image": "vietnamese-enterprise-rag:web-demo",
+    "image": "vietnamese-enterprise-rag:web-demo-supabase-adapter",
     "build": "pass",
     "container_http_health": "pass",
-    "docker_health": "healthy"
+    "docker_health": "healthy",
+    "local_fallback_health": {
+      "auth": "local_pbkdf2_signed_session",
+      "persistence": "sqlite"
+    }
+  },
+  "test_suite": {
+    "passed": 61,
+    "warnings": 1
   },
   "claim_boundary": "Single-machine 20-request smoke, not a production capacity or sustained load test."
 }

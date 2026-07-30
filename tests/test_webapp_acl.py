@@ -59,6 +59,19 @@ def test_acl_is_applied_before_search_and_admin_can_manage_users(tmp_path):
         )
         assert user_response.status_code == 201
 
+        manager_response = client.post(
+            "/api/users",
+            headers=admin_headers,
+            json={
+                "email": "manager@example.test",
+                "display_name": "HR Manager",
+                "password": "ManagerPassphrase123!",
+                "role": "manager",
+                "department_id": hr["id"],
+            },
+        )
+        assert manager_response.status_code == 201
+
         client.post(
             "/api/documents",
             headers=admin_headers,
@@ -102,3 +115,23 @@ def test_acl_is_applied_before_search_and_admin_can_manage_users(tmp_path):
             citation["title"] != "Ngân sách tài chính"
             for citation in body["citations"]
         )
+
+        manager_login = client.post(
+            "/api/login",
+            json={
+                "email": "manager@example.test",
+                "password": "ManagerPassphrase123!",
+            },
+        )
+        manager_headers = _auth(manager_login.json()["access_token"])
+        organization_write = client.post(
+            "/api/documents",
+            headers=manager_headers,
+            json={
+                "title": "Thông báo toàn công ty",
+                "content": "Manager không được tự nâng phạm vi tài liệu lên toàn tổ chức.",
+                "access_scope": "organization",
+                "department_id": None,
+            },
+        )
+        assert organization_write.status_code == 403

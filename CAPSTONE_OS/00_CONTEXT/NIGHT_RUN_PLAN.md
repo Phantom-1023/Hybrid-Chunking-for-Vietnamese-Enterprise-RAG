@@ -85,8 +85,12 @@ P4/P5 evidence:
 - Docker image `vietnamese-enterprise-rag:web-demo` build pass; container HTTP
   health pass và Docker health `healthy`.
 - Supabase managed project healthy; migration tạo 4 bảng và bật RLS pass.
-  Policy count đã kiểm chứng: audit 2, department 2, document 4, profile 2.
-- Web runtime vẫn dùng SQLite; Supabase Auth/Postgres integration chưa claim.
+  Policy count: audit 1, department 2, document 4, profile 2.
+- Bootstrap admin dùng one-time proof + advisory lock; audit chỉ ghi qua RPC tự
+  lấy `auth.uid()`; anon không có table grant.
+- Supabase adapter test xác nhận user JWT vào PostgREST/RLS trước reranker và
+  service key không đi vào search. Live two-department canary chưa chạy, nên
+  chưa claim Supabase end-to-end.
 - `render.yaml` đã có cho preview; chưa claim deployed URL.
 - Figma product board 4.800×1.120 đã tạo trong tài khoản user: system flow,
   login, chat/citation, admin/ACL và document management.

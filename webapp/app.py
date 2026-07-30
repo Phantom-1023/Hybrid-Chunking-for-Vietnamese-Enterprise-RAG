@@ -6,8 +6,8 @@ from pathlib import Path
 import secrets
 from typing import Annotated, Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
-from fastapi.responses import FileResponse
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -15,6 +15,7 @@ from src.bm25_retriever import BM25Retriever, LexicalDocument
 from src.reranker import CrossEncoderReranker
 from webapp.db import Database
 from webapp.security import create_token, decode_token, hash_password, verify_password
+from webapp.supabase_backend import SupabaseBackend, SupabaseBackendError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,14 +42,14 @@ class UserCreate(BaseModel):
     display_name: str = Field(min_length=2, max_length=80)
     password: str = Field(min_length=10, max_length=200)
     role: Literal["admin", "manager", "member"] = "member"
-    department_id: int | None = None
+    department_id: int | str | None = None
 
 
 class DocumentCreate(BaseModel):
     title: str = Field(min_length=2, max_length=200)
     content: str = Field(min_length=10, max_length=200_000)
     access_scope: Literal["organization", "department", "private"]
-    department_id: int | None = None
+    department_id: int | str | None = None
 
 
 class SearchRequest(BaseModel):
@@ -62,12 +63,16 @@ def create_app(
     token_secret: str | None = None,
     reranker=None,
     enable_reranker: bool | None = None,
+    supabase_backend: SupabaseBackend | None = None,
 ) -> FastAPI:
     db = Database(
         database_path
         or os.getenv("WEBAPP_DATABASE_PATH", str(ROOT / "data" / "webapp.db"))
     )
     secret = token_secret or os.getenv("WEBAPP_TOKEN_SECRET") or secrets.token_urlsafe(48)
+    backend_mode = os.getenv("WEBAPP_BACKEND", "sqlite").strip().lower()
+    if supabase_backend is None and backend_mode == "supabase":
+        supabase_backend = SupabaseBackend.from_environment()
     should_load_reranker = (
         enable_reranker
         if enable_reranker is not None
@@ -87,8 +92,15 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
-        db.initialize()
-        yield
+        if supabase_backend is not None:
+            supabase_backend.initialize()
+        else:
+            db.initialize()
+        try:
+            yield
+        finally:
+            if supabase_backend is not None:
+                supabase_backend.close()
 
     app = FastAPI(
         title="Vietnamese Enterprise RAG",
@@ -96,13 +108,23 @@ def create_app(
         lifespan=lifespan,
     )
     app.state.db = db
+    app.state.supabase_backend = supabase_backend
     app.state.token_secret = secret
+
+    @app.exception_handler(SupabaseBackendError)
+    async def supabase_error_handler(
+        _request: Request,
+        exc: SupabaseBackendError,
+    ):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
     def current_user(
         authorization: Annotated[str | None, Header()] = None,
     ) -> dict:
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Authentication required")
+        if supabase_backend is not None:
+            return supabase_backend.user_from_token(authorization[7:])
         try:
             user_id = decode_token(authorization[7:], secret)
         except ValueError as exc:
@@ -127,19 +149,40 @@ def create_app(
 
     @app.get("/api/health")
     def health():
+        details = (
+            supabase_backend.health_details()
+            if supabase_backend is not None
+            else {
+                "auth": "local_pbkdf2_signed_session",
+                "persistence": "sqlite",
+            }
+        )
         return {
             "status": "ok",
-            "auth": "local_pbkdf2_signed_session",
             "deployment_claim": "demo_only",
+            **details,
         }
 
     @app.get("/api/setup/status")
     def setup_status():
+        if supabase_backend is not None:
+            return supabase_backend.setup_status()
         count = db.query_one("SELECT COUNT(*) AS count FROM users")
         return {"needs_setup": int(count["count"]) == 0}
 
     @app.post("/api/setup", status_code=status.HTTP_201_CREATED)
-    def setup(payload: SetupRequest):
+    def setup(
+        payload: SetupRequest,
+        x_bootstrap_token: Annotated[str | None, Header()] = None,
+    ):
+        if supabase_backend is not None:
+            access_token = supabase_backend.bootstrap_admin(
+                email=payload.email.lower().strip(),
+                display_name=payload.display_name,
+                password=payload.password,
+                bootstrap_token=x_bootstrap_token,
+            )
+            return {"access_token": access_token, "token_type": "bearer"}
         count = db.query_one("SELECT COUNT(*) AS count FROM users")
         if int(count["count"]) > 0:
             raise HTTPException(status_code=409, detail="Setup already completed")
@@ -161,6 +204,14 @@ def create_app(
 
     @app.post("/api/login")
     def login(payload: LoginRequest):
+        if supabase_backend is not None:
+            return {
+                "access_token": supabase_backend.login(
+                    payload.email.lower().strip(),
+                    payload.password,
+                ),
+                "token_type": "bearer",
+            }
         user = db.query_one(
             "SELECT * FROM users WHERE email = ? AND is_active = 1",
             (payload.email.lower().strip(),),
@@ -186,10 +237,14 @@ def create_app(
 
     @app.get("/api/me")
     def me(user: Annotated[dict, Depends(current_user)]):
-        return user
+        public_user = dict(user)
+        public_user.pop("_access_token", None)
+        return public_user
 
     @app.get("/api/departments")
     def departments(user: Annotated[dict, Depends(current_user)]):
+        if supabase_backend is not None:
+            return supabase_backend.list_departments(user["_access_token"])
         return db.query_all("SELECT * FROM departments ORDER BY name")
 
     @app.post("/api/departments", status_code=201)
@@ -197,6 +252,20 @@ def create_app(
         payload: DepartmentCreate,
         admin: Annotated[dict, Depends(require_admin)],
     ):
+        if supabase_backend is not None:
+            department = supabase_backend.create_department(
+                admin["_access_token"],
+                payload.name.strip(),
+            )
+            supabase_backend.audit(
+                admin["_access_token"],
+                actor_id=str(admin["id"]),
+                action="create",
+                resource_type="department",
+                resource_id=str(department["id"]),
+                outcome="allowed",
+            )
+            return department
         try:
             department_id = db.execute(
                 "INSERT INTO departments (name) VALUES (?)", (payload.name.strip(),)
@@ -214,6 +283,8 @@ def create_app(
 
     @app.get("/api/users")
     def users(admin: Annotated[dict, Depends(require_admin)]):
+        if supabase_backend is not None:
+            return supabase_backend.list_users(admin["_access_token"])
         return db.query_all(
             """
             SELECT u.id, u.email, u.display_name, u.role, u.department_id,
@@ -228,6 +299,23 @@ def create_app(
         payload: UserCreate,
         admin: Annotated[dict, Depends(require_admin)],
     ):
+        if supabase_backend is not None:
+            user_id = supabase_backend.create_user(
+                email=payload.email.lower().strip(),
+                display_name=payload.display_name,
+                password=payload.password,
+                role=payload.role,
+                department_id=payload.department_id,
+            )
+            supabase_backend.audit(
+                admin["_access_token"],
+                actor_id=str(admin["id"]),
+                action="create",
+                resource_type="user",
+                resource_id=user_id,
+                outcome="allowed",
+            )
+            return {"id": user_id}
         try:
             user_id = db.execute(
                 """
@@ -256,6 +344,8 @@ def create_app(
 
     @app.get("/api/documents")
     def documents(user: Annotated[dict, Depends(current_user)]):
+        if supabase_backend is not None:
+            return supabase_backend.allowed_documents(user["_access_token"])
         return db.allowed_documents(user)
 
     @app.post("/api/documents", status_code=201)
@@ -266,26 +356,59 @@ def create_app(
         if user["role"] not in {"admin", "manager"}:
             raise HTTPException(status_code=403, detail="Manager or admin role required")
         department_id = payload.department_id
+        if user["role"] == "manager":
+            if payload.access_scope == "organization":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Only admins can create organization documents",
+                )
+            if (
+                department_id is not None
+                and department_id != user["department_id"]
+            ):
+                raise HTTPException(status_code=403, detail="Cross-department write denied")
+            department_id = user["department_id"]
+            if department_id is None:
+                raise HTTPException(status_code=422, detail="Department is required")
         if payload.access_scope == "department":
             department_id = department_id or user["department_id"]
             if department_id is None:
                 raise HTTPException(status_code=422, detail="Department is required")
-            if user["role"] != "admin" and department_id != user["department_id"]:
-                raise HTTPException(status_code=403, detail="Cross-department write denied")
-        document_id = db.execute(
-            """
-            INSERT INTO documents
-                (title, content, access_scope, department_id, owner_id)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                payload.title.strip(),
-                payload.content.strip(),
-                payload.access_scope,
-                department_id,
-                user["id"],
-            ),
-        )
+        if supabase_backend is not None:
+            document_id = supabase_backend.create_document(
+                user["_access_token"],
+                title=payload.title.strip(),
+                content=payload.content.strip(),
+                access_scope=payload.access_scope,
+                department_id=department_id,
+                owner_id=str(user["id"]),
+            )
+        else:
+            document_id = db.execute(
+                """
+                INSERT INTO documents
+                    (title, content, access_scope, department_id, owner_id)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    payload.title.strip(),
+                    payload.content.strip(),
+                    payload.access_scope,
+                    department_id,
+                    user["id"],
+                ),
+            )
+        if supabase_backend is not None:
+            supabase_backend.audit(
+                user["_access_token"],
+                actor_id=str(user["id"]),
+                action="create",
+                resource_type="document",
+                resource_id=str(document_id),
+                outcome="allowed",
+                detail=payload.access_scope,
+            )
+            return {"id": document_id}
         db.audit(
             user_id=user["id"],
             action="create",
@@ -301,14 +424,27 @@ def create_app(
         payload: SearchRequest,
         user: Annotated[dict, Depends(current_user)],
     ):
-        allowed = db.allowed_documents(user)
+        allowed = (
+            supabase_backend.allowed_documents(user["_access_token"])
+            if supabase_backend is not None
+            else db.allowed_documents(user)
+        )
         if not allowed:
-            db.audit(
-                user_id=user["id"],
-                action="search",
-                resource_type="document",
-                outcome="allowed_empty",
-            )
+            if supabase_backend is not None:
+                supabase_backend.audit(
+                    user["_access_token"],
+                    actor_id=str(user["id"]),
+                    action="search",
+                    resource_type="document",
+                    outcome="allowed_empty",
+                )
+            else:
+                db.audit(
+                    user_id=user["id"],
+                    action="search",
+                    resource_type="document",
+                    outcome="allowed_empty",
+                )
             return {
                 "answer": "Chưa có tài liệu nào bạn được phép truy cập.",
                 "citations": [],
@@ -343,7 +479,7 @@ def create_app(
             method = "bm25_acl_first"
         citations = [
             {
-                "document_id": int(document.document_id),
+                "document_id": document.document_id,
                 "title": document.metadata["title"],
                 "department": document.metadata["department_name"],
                 "access_scope": document.metadata["access_scope"],
@@ -352,13 +488,23 @@ def create_app(
             }
             for document, score in evidence_documents
         ]
-        db.audit(
-            user_id=user["id"],
-            action="search",
-            resource_type="document",
-            outcome="allowed",
-            detail=f"acl_candidates={len(allowed)};evidence={len(citations)}",
-        )
+        if supabase_backend is not None:
+            supabase_backend.audit(
+                user["_access_token"],
+                actor_id=str(user["id"]),
+                action="search",
+                resource_type="document",
+                outcome="allowed",
+                detail=f"acl_candidates={len(allowed)};evidence={len(citations)}",
+            )
+        else:
+            db.audit(
+                user_id=user["id"],
+                action="search",
+                resource_type="document",
+                outcome="allowed",
+                detail=f"acl_candidates={len(allowed)};evidence={len(citations)}",
+            )
         return {
             "answer": (
                 "Đây là các đoạn bằng chứng phù hợp nhất trong phạm vi quyền truy cập "
@@ -375,6 +521,8 @@ def create_app(
 
     @app.get("/api/audit")
     def audit_log(admin: Annotated[dict, Depends(require_admin)]):
+        if supabase_backend is not None:
+            return supabase_backend.audit_logs(admin["_access_token"])
         return db.query_all(
             """
             SELECT a.*, u.email

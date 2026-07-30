@@ -7,7 +7,7 @@
     {
       "table": "audit_logs",
       "rls_enabled": true,
-      "policy_count": 2
+      "policy_count": 1
     },
     {
       "table": "departments",
@@ -25,5 +25,19 @@
       "policy_count": 2
     }
   ],
-  "claim_boundary": "Managed schema and RLS are provisioned; the current web runtime still uses SQLite until Supabase Auth/Postgres integration tests pass."
+  "security_checks": {
+    "profile_is_active_column": true,
+    "atomic_admin_bootstrap_rpc": true,
+    "server_authored_audit_rpc": true,
+    "anon_can_select_documents": false,
+    "authenticated_can_insert_raw_audit": false,
+    "authenticated_can_call_audit_rpc": true
+  },
+  "runtime_adapter_test": {
+    "user_jwt_forwarded_to_postgrest": true,
+    "service_key_not_used_for_user_search": true,
+    "rls_before_reranker_order": true,
+    "live_two_department_canary": false
+  },
+  "claim_boundary": "Managed schema/RLS and adapter plumbing are verified. Real-user Supabase Auth plus two-department live RLS canary is still required before an end-to-end claim."
 }

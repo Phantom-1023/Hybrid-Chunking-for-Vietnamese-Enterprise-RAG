@@ -18,7 +18,7 @@ không nhận tài liệu Tài chính dù câu hỏi khớp mạnh với nội d
 
 ## Current implementation
 
-- FastAPI + SQLite demo persistence.
+- FastAPI có hai backend: SQLite local fallback và Supabase Auth/Postgres RLS.
 - Password: salted PBKDF2-SHA256; signed expiring session.
 - One-time admin setup; admin quản lý phòng ban/user; manager thêm tài liệu đúng
   phòng ban; member chỉ đọc/hỏi.
@@ -35,8 +35,17 @@ không nhận tài liệu Tài chính dù câu hỏi khớp mạnh với nội d
   thể không bền.
 - Supabase project đã healthy; migration tạo `departments`, `profiles`,
   `documents`, `audit_logs` và bật RLS đã chạy pass. Truy vấn kiểm chứng trả đủ
-  4 bảng với 2/2/4/2 policy.
-- Web runtime hiện vẫn dùng SQLite. Chưa claim Supabase integration cho tới khi
-  Auth/Postgres end-to-end test pass; không đưa password/key vào file hoặc Git.
+  4 bảng với 2/2/4/1 policy.
+- Supabase runtime adapter dùng user access token cho mọi PostgREST read/write;
+  service-role chỉ dành cho bootstrap/admin server-side.
+- HTTP bootstrap mặc định đóng; chỉ mở khi có one-time bootstrap proof, và RPC
+  dùng advisory lock bảo đảm chỉ một admin đầu tiên thắng.
+- Audit event đi qua RPC tự lấy `auth.uid()`; authenticated user không có quyền
+  insert trực tiếp để giả actor.
+- Mock-transport integration test chứng minh user bearer đi vào PostgREST/RLS
+  trước khi candidate được chuyển cho reranker. Live account login chưa test,
+  nên chưa claim Supabase end-to-end production.
+- `render.yaml` dùng Supabase backend và yêu cầu secret qua dashboard; không đưa
+  password/key vào file hoặc Git.
 - Chưa claim production readiness, 20-user capacity hoặc deployed URL trước khi
   có smoke/load evidence thật.

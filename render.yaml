@@ -5,7 +5,15 @@ services:
     dockerfilePath: ./docker/Dockerfile.web
     healthCheckPath: /api/health
     envVars:
-      - key: WEBAPP_DATABASE_PATH
-        value: /app/data/webapp.db
-      - key: WEBAPP_TOKEN_SECRET
-        generateValue: true
+      - key: WEBAPP_BACKEND
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_BOOTSTRAP_TOKEN
+        sync: false
+      - key: WEBAPP_ENABLE_RERANKER
+        value: "false"

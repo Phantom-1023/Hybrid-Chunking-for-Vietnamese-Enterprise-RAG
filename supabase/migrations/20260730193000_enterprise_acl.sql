@@ -16,6 +16,7 @@ create table if not exists public.profiles (
   role text not null default 'member'
     check (role in ('admin', 'manager', 'member')),
   department_id uuid references public.departments(id) on delete set null,
+  is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -41,6 +42,23 @@ create table if not exists public.audit_logs (
   created_at timestamptz not null default now()
 );
 
+alter table public.profiles
+  add column if not exists is_active boolean not null default true;
+
+do $$
+begin
+  alter table public.documents
+    add constraint documents_scope_department_consistency
+    check (
+      (scope = 'organization' and department_id is null)
+      or (scope = 'department' and department_id is not null)
+      or scope = 'private'
+    );
+exception
+  when duplicate_object then null;
+end;
+$$;
+
 create or replace function public.current_profile_role()
 returns text
 language sql
@@ -65,6 +83,66 @@ revoke all on function public.current_profile_role() from public;
 revoke all on function public.current_profile_department() from public;
 grant execute on function public.current_profile_role() to authenticated;
 grant execute on function public.current_profile_department() to authenticated;
+
+create or replace function public.bootstrap_admin_profile(
+  target_user_id uuid,
+  target_email text,
+  target_display_name text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  perform pg_advisory_xact_lock(20260730);
+  if exists (select 1 from public.profiles) then
+    raise exception 'Admin bootstrap already completed';
+  end if;
+  insert into public.profiles (id, email, display_name, role)
+  values (target_user_id, target_email, target_display_name, 'admin');
+end;
+$$;
+
+revoke all on function public.bootstrap_admin_profile(uuid, text, text) from public;
+revoke all on function public.bootstrap_admin_profile(uuid, text, text) from authenticated;
+grant execute on function public.bootstrap_admin_profile(uuid, text, text) to service_role;
+
+create or replace function public.append_audit_event(
+  event_action text,
+  event_resource_type text,
+  event_resource_id text default null,
+  event_outcome text default 'allowed',
+  event_detail text default ''
+)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  insert into public.audit_logs (
+    actor_id,
+    action,
+    resource_type,
+    resource_id,
+    metadata
+  )
+  values (
+    auth.uid(),
+    left(event_action, 100),
+    left(event_resource_type, 100),
+    event_resource_id,
+    jsonb_build_object(
+      'outcome', left(event_outcome, 100),
+      'detail', left(event_detail, 500)
+    )
+  )
+$$;
+
+revoke all on function public.append_audit_event(text, text, text, text, text)
+  from public;
+grant execute on function public.append_audit_event(text, text, text, text, text)
+  to authenticated;
 
 alter table public.departments enable row level security;
 alter table public.profiles enable row level security;
@@ -128,6 +206,7 @@ using (
   or (
     public.current_profile_role() = 'manager'
     and department_id = public.current_profile_department()
+    and owner_id = auth.uid()
   )
 )
 with check (
@@ -135,6 +214,7 @@ with check (
   or (
     public.current_profile_role() = 'manager'
     and department_id = public.current_profile_department()
+    and owner_id = auth.uid()
     and scope <> 'organization'
   )
 );
@@ -147,18 +227,25 @@ using (
   or (
     public.current_profile_role() = 'manager'
     and department_id = public.current_profile_department()
+    and owner_id = auth.uid()
   )
 );
 
 drop policy if exists audit_insert on public.audit_logs;
-create policy audit_insert on public.audit_logs
-for insert to authenticated
-with check (actor_id = auth.uid());
 
 drop policy if exists audit_admin_read on public.audit_logs;
 create policy audit_admin_read on public.audit_logs
 for select to authenticated
 using (public.current_profile_role() = 'admin');
+
+revoke all on public.departments, public.profiles, public.documents,
+  public.audit_logs from anon;
+revoke all on public.audit_logs from authenticated;
+grant select on public.departments, public.profiles, public.documents
+  to authenticated;
+grant insert, update, delete on public.departments, public.profiles,
+  public.documents to authenticated;
+grant select on public.audit_logs to authenticated;
 
 create index if not exists documents_department_idx
   on public.documents(department_id);

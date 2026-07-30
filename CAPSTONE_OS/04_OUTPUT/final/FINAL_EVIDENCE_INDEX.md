@@ -21,8 +21,8 @@ evidence có citation.
 | Cải thiện locked test | base 0.779 -> FT 0.945 MRR | `artifacts/benchmark/reranker_comparison.json` |
 | Error analysis | 109 hit→hit, 2 miss→hit, 3 miss→miss | `artifacts/benchmark/reranker_error_analysis.json` |
 | ACL trước retrieval | cross-department denial pass | `tests/test_webapp_acl.py` |
-| Web + Docker | 58 tests; Docker healthy | `artifacts/web/web_smoke.json` |
-| Supabase schema/RLS | 4 bảng bật RLS; 10 policy | `artifacts/web/supabase_schema_smoke.json` |
+| Web + Docker | 61 tests; Docker healthy | `artifacts/web/web_smoke.json` |
+| Supabase schema/RLS | 4 bảng bật RLS; 9 policy; audit RPC | `artifacts/web/supabase_schema_smoke.json` |
 | Thiết kế | editable Figma product board | `artifacts/design/figma_delivery.json` |
 
 ## Không được nói quá
@@ -40,6 +40,6 @@ evidence có citation.
 - Web auth/role/department/document ACL: pass local.
 - Docker package và local health: pass.
 - Figma product board: pass v0.
-- Supabase schema/RLS: pass; web Auth/Postgres integration còn pending.
+- Supabase schema/RLS + runtime adapter: pass; live two-user RLS canary pending.
 - Public deployment: pending URL và external smoke test.
 - Báo cáo/slide chính thức: cần đồng bộ nội dung từ evidence index này.
