@@ -1,66 +1,98 @@
-# MISSION.md
-> RAG Enterprise — GSU26AI09
+# MISSION CONTRACT v0.2
 
----
+Status: `APPROVED / ACTIVE`
 
-## Vision
+## 1. Mission
 
-Xây dựng một hệ thống RAG (Retrieval-Augmented Generation) được tối ưu cho văn bản nghiệp vụ tiếng Việt, cung cấp bằng chứng khoa học về hiệu suất của các chiến lược chunking thông qua đánh giá định lượng chuẩn hóa bằng RAGAS.
+Hoàn thiện một MVP RAG tiếng Việt cho tri thức doanh nghiệp có thể bảo vệ trước
+hội đồng:
 
----
+```text
+ACL theo user/phòng ban
+        ↓
+Dense + BM25
+        ↓
+Hybrid RRF lấy top-20
+        ↓
+Fine-tuned Cross-Encoder rerank
+        ↓
+Top-5 evidence + citation
+        ↓
+LLM hoặc fallback không bịa
+```
 
-## North Star
+Đóng góp fine-tune bắt buộc nằm trong query pipeline thật. BM25 là lexical
+retrieval baseline, không phải mô hình được fine-tune.
 
-> **"Bảng so sánh RAGAS của 4 chiến lược chunking trên tập dữ liệu tiếng Việt, chứng minh rõ ràng chiến lược nào vượt trội — và tại sao."**
+## 2. Scientific contract
 
-Thành công khi hội đồng bảo vệ nhìn vào bảng kết quả và có thể trả lời ngay: *"Đội đã thực nghiệm, đo lường, và rút ra kết luận có căn cứ."*
+- Dùng cùng locked test set cho no-rerank, MMR, base Cross-Encoder và
+  fine-tuned Cross-Encoder.
+- Checkpoint chọn bằng validation, không chọn bằng test.
+- Bằng chứng bắt buộc: split/leakage report, pair manifest, training history,
+  checkpoint reload, checksum, before/after metrics và error analysis.
+- Phạm vi kết luận hiện tại là query generalization trên cùng corpus.
+- Không gọi benchmark retrieval này là full RAGAS.
+- Không giả số, không chọn lại protocol sau khi nhìn test.
 
----
+## 3. Product contract
 
-## Success Criteria
+- Web có login, user, role, phòng ban, document scope, admin và audit.
+- ACL/RLS lọc document trước retrieval và reranking.
+- Same-browser logout/login phải xóa toàn bộ state theo user trước.
+- Docker phải chạy local và public preview phải có health check bên ngoài.
+- Figma là product/architecture board editable; chưa claim design system hoàn chỉnh.
 
-| # | Tiêu chí | Mức tối thiểu để pass | Mức lý tưởng |
-|---|----------|-----------------------|--------------|
-| 1 | 4 chiến lược chunking chạy được | Fixed ✓ Recursive ✓ Semantic ✓ Paragraph ✓ | Kết quả ổn định, không crash |
-| 2 | RAGAS evaluation hoàn chỉnh | ≥ 3/4 metrics có kết quả | Đủ 4 metrics: Faithfulness, Answer Relevancy, Context Recall, Context Precision |
-| 3 | So sánh có ý nghĩa | Kết quả khác nhau giữa các chiến lược | Có biểu đồ + nhận xét phân tích |
-| 4 | Demo chạy được live | Streamlit không crash khi GV hỏi | Q&A hoạt động + hiện chunk được dùng |
-| 5 | Báo cáo đủ nộp | Đủ chương, đủ hình | Bảng kết quả RAGAS được chèn vào report |
-| 6 | Dataset độc lập | Không phụ thuộc dữ liệu doanh nghiệp | `sailor2/Vietnamese_RAG` (public HuggingFace) |
+## 4. Definition of Done
 
----
+1. Research pipeline và fine-tuned checkpoint có evidence audit được.
+2. Runtime thật chạy top-20 → rerank → top-5 evidence.
+3. Auth/ACL/admin chạy local; Supabase RLS có live two-department canary.
+4. Docker healthy và có temporary public preview.
+5. README, evidence index, demo script, report outline, slide và defense Q&A
+   dùng cùng bảng số liệu khóa.
+6. Secrets, private data và checkpoint weights lớn không vào Git.
+7. Mọi giới hạn còn lại được ghi rõ thay vì overclaim.
 
-## Scope
+## 5. Git and autonomy
 
-**Trong phạm vi đề tài:**
+- Chỉ làm và push lên `review2-mvp-demo`; không push/merge trực tiếp `main`.
+- Không stage toàn bộ dirty worktree.
+- Loop tự chủ: `inspect → implement one slice → verify → evidence → commit → push`.
+- Agent tự xử lý trong contract sau một lần duyệt; user chỉ giữ quyết định có
+  đòn bẩy lớn.
+- Hard stop: nguy cơ mất dữ liệu, lộ secret, phát sinh chi phí, sai nhánh hoặc
+  thay Mission Contract.
 
-- So sánh **4 chiến lược chunking**: Fixed-size, Recursive, Semantic, Paragraph
-- **Embedding**: Gemini `text-embedding-004` (Google API)
-- **LLM sinh câu trả lời**: Gemini Flash (Google API)
-- **Vector store**: ChromaDB (local, 4 collection riêng biệt cho 4 chiến lược)
-- **Đánh giá**: RAGAS metrics trên `sailor2/Vietnamese_RAG` (BKAI_RAG config, 50 documents)
-- **Giao diện**: Streamlit — Q&A demo + bảng benchmark
-- **Preprocessing cơ bản**: join passages từ `List[str]` → `str`, loại bỏ khoảng trắng thừa
-- **Xử lý mixed Việt-Anh**: ghi nhận là giới hạn, không chặn hệ thống (dùng tokenizer mặc định)
+## 6. Claim boundary
 
-**Ngoài phạm vi (đã xác nhận cắt):**
+Được nói:
 
-Xem phần Non-goals bên dưới.
+- Fine-tuned reranker cải thiện retrieval MRR trên locked test.
+- ACL-first retrieval đã pass local test và bounded live Supabase canary.
+- Docker và Render Free public preview đã được smoke-test.
 
----
+Không được nói:
 
-## Non-goals
+- Full RAGAS đã hoàn tất.
+- Production-ready hoặc phục vụ bền vững 20 user.
+- Document-domain generalization đã được chứng minh.
+- Figma đã là production design system.
 
-> Những thứ này **không** nằm trong scope — không implement, không demo, không báo cáo.
+## 7. Canonical control set
 
-| Hạng mục | Lý do cắt |
-|----------|-----------|
-| BM25 / Hybrid Retrieval | Ngoài research question; không đủ thời gian |
-| Re-ranking (cross-encoder) | Thêm biến số không kiểm soát được vào benchmark |
-| Docker / containerization | Không cần thiết cho academic demo |
-| Multi-user authentication | UI chỉ cần chạy được cho GV demo |
-| Ingest file doanh nghiệp thật | Dataset đã giải quyết bằng public dataset |
-| Fine-tune embedding model | API-first constraint — không train local |
-| Hierarchical chunking | Không trong 4 chiến lược đã cam kết |
-| Production deployment | Đây là prototype nghiên cứu |
-| Xử lý auto-translate mixed text | Ghi nhận là hướng mở rộng trong báo cáo |
+Chỉ cần mở các nguồn sau:
+
+1. `CAPSTONE_OS/00_CONTEXT/NIGHT_RUN_PLAN.md`
+2. `CAPSTONE_OS/04_OUTPUT/final/FINAL_EVIDENCE_INDEX.md`
+3. `CAPSTONE_OS/04_OUTPUT/demo/FINAL_DEMO_SCRIPT.md`
+4. `CAPSTONE_OS/04_OUTPUT/defense/ONE_PAGE_LAST_MINUTE_REVIEW.md`
+
+Các README/STATE/PROGRESS hoặc benchmark lịch sử không được dùng làm claim nếu
+chưa đối chiếu với evidence index.
+
+## 8. Current remaining human gate
+
+Public preview đã pass health và live canary bằng tài khoản tạm. Tài khoản tạm
+đã được dọn sạch. User cần tự nhập credential để tạo permanent admin; credential
+không được ghi vào chat, file, log hoặc Git.

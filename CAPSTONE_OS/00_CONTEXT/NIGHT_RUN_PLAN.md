@@ -27,7 +27,7 @@ không phá MVP hiện tại và không claim vượt quá bằng chứng.
 | P4 — PASS V0 | FigJam/Figma và web shell | Luồng UX/ACL được duyệt bằng testable spec | Web + editable Figma product board |
 | P5 — PASS LOCAL | Auth, department, role và document ACL | Cross-department denial test pass | Multi-user local MVP |
 | P6 — PASS PREVIEW | Docker, temporary deploy, smoke/load test | Local Docker + public HTTP health pass | Render Free URL |
-| P7 — PASS DRAFT | README/report/slides/demo/defense | Mọi claim trỏ được tới evidence | Canonical evidence/demo/defense pack |
+| P7 — PASS | README/report/slides/demo/defense | Mọi claim trỏ được tới evidence | Canonical evidence/demo/defense pack + final defense deck |
 
 P0 evidence:
 
@@ -89,17 +89,25 @@ P4/P5 evidence:
 - Bootstrap admin dùng one-time proof + advisory lock; audit chỉ ghi qua RPC tự
   lấy `auth.uid()`; anon không có table grant.
 - Supabase adapter test xác nhận user JWT vào PostgREST/RLS trước reranker và
-  service key không đi vào search. Live two-department canary chưa chạy, nên
-  chưa claim Supabase end-to-end.
+  service key không đi vào search.
+- Live canary trên public preview dùng 1 admin, 2 member, 2 phòng ban và 2 tài
+  liệu: HR không đọc/retrieve Finance và Finance không đọc/retrieve HR.
+- Canary phát hiện lịch sử chat cũ còn trên client sau khi đổi user; bản vá
+  `0862b89` xóa toàn bộ state theo user. Regression canary trên public pass.
+- Toàn bộ user/profile/document/department tạm được xóa sau canary; count
+  xác minh trở về 0.
 - Render Free public preview đã live tại
   `https://vietnamese-enterprise-rag-demo.onrender.com`; homepage và health
   endpoint HTTP 200, chạy Supabase Auth/Postgres RLS.
-- Admin bootstrap và fine-tuned checkpoint trên public preview còn pending.
+- Permanent user-owned admin bootstrap và fine-tuned checkpoint trên public
+  preview còn pending.
 - Figma product board 4.800×1.120 đã tạo trong tài khoản user: system flow,
   login, chat/citation, admin/ACL và document management.
 - Font web/Figma được chốt `Inter`; Figma đã thay font và visual check pass.
 - Figma v0 là editable imported SVG board, chưa claim design system đã
   componentize đầy đủ.
+- Final defense deck 11 slide đã render từng trang, có speaker-note sources và
+  pass overflow QA.
 
 ## 3. Điều phối model
 

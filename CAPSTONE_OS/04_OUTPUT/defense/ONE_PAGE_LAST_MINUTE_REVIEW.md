@@ -1,54 +1,68 @@
-# Ôn gấp trước khi vào phòng
+# ÔN NHANH TRƯỚC KHI BẢO VỆ
 
-## Project trong 5 dòng
+Status: `CANONICAL / EVIDENCE-LOCKED`
 
-1. Đây là MVP RAG cho dữ liệu tiếng Việt.
-2. Dataset: `sailor2/Vietnamese_RAG`, config `BKAI_RAG`.
-3. Mục tiêu: so sánh 4 chunking strategy: fixed, recursive, semantic, paragraph.
-4. Demo đã có: Streamlit, real dataset record, answer, source chunks, benchmark tab.
-5. Benchmark hiện là evaluation-lite, chưa phải full RAGAS.
+## Dự án trong 5 câu
 
-## Demo trong 5 bước
+1. Đây là MVP RAG tiếng Việt cho tri thức doanh nghiệp có citation và ACL.
+2. ACL/RLS lọc tài liệu trước khi retriever hoặc reranker nhìn thấy dữ liệu.
+3. Dense + BM25 hợp nhất bằng RRF để lấy top-20 candidate.
+4. Phần được fine-tune là Cross-Encoder reranker: top-20 → top-5 evidence.
+5. Hệ thống có local/Docker runtime, Supabase live canary và Render preview;
+   chưa phải production.
 
-1. Mở `http://localhost:8503`.
-2. Chọn strategy, ưu tiên `paragraph` khi nói về benchmark.
-3. Mở tab "Demo với dữ liệu thật", chọn/random record.
-4. Bấm "Hỏi bằng câu hỏi này", mở answer và source chunks.
-5. Mở "Benchmark evaluation-lite", chỉ bảng, chart và warning chưa full RAGAS.
+## 5 số phải nhớ
 
-## 5 số cần nhớ
+1. Dataset/split: `1.141 = 913 train + 114 validation + 114 test`.
+2. No-rerank MRR: `0.669`.
+3. MMR MRR: `0.699`.
+4. Base Cross-Encoder MRR: `0.779`.
+5. Fine-tuned Cross-Encoder: `MRR 0.945`, `Hit@1 0.930`, `Hit@5 0.974`.
 
-1. Sample count: `5`.
-2. fixed `avg_score = 0.3344`.
-3. recursive `avg_score = 0.3410`.
-4. semantic `avg_score = 0.3313`.
-5. paragraph `avg_score = 0.8354`.
+Tất cả bốn phương án dùng cùng locked test và cùng Hybrid RRF top-20.
 
-## 5 claim nguy hiểm cần tránh
+## Pipeline nói trong 15 giây
 
-1. Không nói: "Đã hoàn thành full RAGAS."
-2. Không nói: "Paragraph chắc chắn tốt nhất trên mọi dữ liệu."
-3. Không nói: "Hệ thống đã production-ready cho doanh nghiệp."
-4. Không nói: "Đã có upload file doanh nghiệp."
-5. Không nói: "Semantic chunking đã là bản đầy đủ không fallback."
+```text
+User JWT → SQL RLS/ACL → Dense + BM25 → RRF top-20
+         → fine-tuned Cross-Encoder → top-5 → answer/citation
+```
 
-## 5 câu trả lời mạnh nhất
+BM25 tìm từ khóa chính xác. Dense tìm câu cùng nghĩa. RRF trộn thứ hạng.
+Cross-Encoder đọc đồng thời query và passage để xếp hạng kỹ hơn.
 
-1. **Dự án là gì?**  
-   "MVP RAG tiếng Việt để so sánh 4 chiến lược chunking, có demo end-to-end và source chunks để kiểm chứng."
+## Fine-tune phải giải thích thế nào?
 
-2. **Vì sao dataset public?**  
-   "Dataset public giúp không phụ thuộc dữ liệu doanh nghiệp đóng và có ground truth để benchmark."
+- Không fine-tune BM25 và không fine-tune chatbot LLM.
+- Fine-tune Cross-Encoder bằng các cặp `(query, passage, relevance)`.
+- Checkpoint chọn theo validation ở epoch 1; test không dùng để chọn model.
+- Có training history, reload test, weights-changed check và checksum.
+- SHA256 checkpoint bắt đầu `3782daf` và kết thúc `aa44`.
 
-3. **Vì sao chưa RAGAS?**  
-   "Nhóm không fake số liệu; hiện có evaluation-lite thật để kiểm tra MVP, full RAGAS là bước tiếp theo."
+## Nếu bị hỏi leakage
 
-4. **Vì sao gọi Enterprise RAG?**  
-   "Vì hướng ứng dụng là quản lý tri thức doanh nghiệp; MVP hiện làm lõi RAG, production features là phase sau."
+“Nhóm khóa seed 42, tách query 913/114/114 và kiểm tra không có duplicate
+question hoặc query-passage pair conflict giữa split. Phạm vi kết luận là query
+generalization trên cùng corpus, chưa phải document generalization.”
 
-5. **Benchmark nói gì?**  
-   "Trong evaluation-lite trên 5 mẫu, paragraph có tín hiệu tốt nhất với `avg_score = 0.8354`, nhưng chưa phải kết luận học thuật cuối cùng."
+## Nếu bị hỏi ACL có thật không
 
-## Câu chốt an toàn
+“Ngoài unit/integration test local, nhóm chạy live canary trên Supabase bằng hai
+phòng HR và Finance. Mỗi user chỉ list/retrieve được document phòng mình. Canary
+cũng phát hiện lịch sử chat client còn lại khi đổi user; nhóm đã sửa và regression
+canary public pass.”
 
-"MVP hiện chạy được end-to-end trên dataset public tiếng Việt, có source chunks và benchmark-lite thật. Nhóm minh bạch rằng full RAGAS và enterprise production là bước tiếp theo, không phải phần đã hoàn thành."
+## 5 claim cấm
+
+1. Không nói benchmark hiện tại là full RAGAS.
+2. Không nói đã chứng minh document-domain generalization.
+3. Không nói production-ready hoặc chịu tải bền vững 20 user.
+4. Không nói public preview đang chạy fine-tuned checkpoint lớn.
+5. Không nói Figma đã là production design system.
+
+## Câu kết
+
+“Đóng góp chính của nhóm là đưa fine-tuned Cross-Encoder vào query pipeline thật,
+đo trước/sau trên cùng locked test và kết hợp ACL-first để tài liệu ngoài quyền
+không đi vào retrieval. Sản phẩm đã có web, Docker, Supabase canary và public
+preview; các giới hạn production và generation evaluation được công khai.”

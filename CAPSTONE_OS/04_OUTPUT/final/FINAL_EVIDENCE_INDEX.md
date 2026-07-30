@@ -1,6 +1,6 @@
 # FINAL EVIDENCE INDEX
 
-Status: `VERIFIED LOCAL MVP / NOT PRODUCTION-DEPLOYED`
+Status: `VERIFIED MVP + PUBLIC PREVIEW / NOT PRODUCTION-READY`
 
 ## Một câu mô tả đồ án
 
@@ -21,10 +21,12 @@ evidence có citation.
 | Cải thiện locked test | base 0.779 -> FT 0.945 MRR | `artifacts/benchmark/reranker_comparison.json` |
 | Error analysis | 109 hit→hit, 2 miss→hit, 3 miss→miss | `artifacts/benchmark/reranker_error_analysis.json` |
 | ACL trước retrieval | cross-department denial pass | `tests/test_webapp_acl.py` |
-| Web + Docker | 61 tests; Docker healthy | `artifacts/web/web_smoke.json` |
+| Web + Docker | 63 tests; Docker healthy | `artifacts/web/web_smoke.json` |
 | Public preview | Render HTTP 200 + Supabase health | `artifacts/web/web_smoke.json` |
 | Supabase schema/RLS | 4 bảng bật RLS; 9 policy; audit RPC | `artifacts/web/supabase_schema_smoke.json` |
+| Supabase live canary | HR ↔ Finance denial; session-switch privacy pass | `artifacts/web/supabase_live_canary.json` |
 | Thiết kế | editable Figma product board | `artifacts/design/figma_delivery.json` |
+| Slide bảo vệ | 11 slide, render/overflow QA pass | `CAPSTONE_OS/04_OUTPUT/slides/RAG_ENTERPRISE_FINAL_DEFENSE.pptx` |
 
 ## Không được nói quá
 
@@ -41,6 +43,7 @@ evidence có citation.
 - Web auth/role/department/document ACL: pass local.
 - Docker package và local health: pass.
 - Figma product board: pass v0.
-- Supabase schema/RLS + runtime adapter: pass; live two-user RLS canary pending.
-- Public preview: pass HTTP health; admin bootstrap còn pending.
-- Báo cáo/slide chính thức: cần đồng bộ nội dung từ evidence index này.
+- Supabase schema/RLS + runtime adapter + live two-user RLS canary: pass.
+- Same-browser logout/login privacy: pass sau bản vá `0862b89`.
+- Public preview: pass HTTP health; permanent user-owned admin bootstrap còn pending.
+- Slide chính thức: pass; report final vẫn dùng evidence index làm bảng số liệu khóa.

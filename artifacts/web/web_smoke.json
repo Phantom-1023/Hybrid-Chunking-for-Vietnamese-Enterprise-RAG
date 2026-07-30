@@ -11,7 +11,7 @@
     "plan": "free",
     "url": "https://vietnamese-enterprise-rag-demo.onrender.com",
     "branch": "review2-mvp-demo",
-    "commit": "0cc4d78",
+    "commit": "0862b89",
     "homepage_http_status": 200,
     "health_http_status": 200,
     "auth": "supabase_auth",
@@ -49,8 +49,21 @@
     }
   },
   "test_suite": {
-    "passed": 61,
+    "passed": 63,
     "warnings": 1
+  },
+  "session_privacy_canary": {
+    "status": "pass",
+    "hr_visible_documents": [
+      "hr"
+    ],
+    "finance_visible_documents": [
+      "finance"
+    ],
+    "cross_department_document_leak": false,
+    "cross_department_retrieval_leak": false,
+    "conversation_cleared_on_user_switch": true,
+    "temporary_rows_removed_after_test": true
   },
   "claim_boundary": "Single-machine 20-request smoke, not a production capacity or sustained load test."
 }

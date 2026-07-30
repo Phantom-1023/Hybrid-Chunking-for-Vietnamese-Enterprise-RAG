@@ -50,15 +50,18 @@ dựa trên locked query-generalization test và phải nêu giới hạn này.
 
 ## 9. ACL có thực sự an toàn?
 
-Trong MVP, SQL lọc tài liệu theo user/role/department trước retrieval. Test
-cross-department và reranker spy xác nhận model chưa từng nhận tài liệu bị cấm.
-Production vẫn cần Postgres RLS, secret management và security review.
+Trong MVP, SQL/RLS lọc tài liệu theo user/role/department trước retrieval. Test
+local và live Supabase canary hai phòng ban xác nhận mỗi user không list/retrieve
+được tài liệu chéo phòng. Canary còn phát hiện lịch sử chat client còn lại sau
+đổi user; bản vá `0862b89` đã pass regression canary public. Production vẫn cần
+security review, monitoring và vận hành dài hạn.
 
 ## 10. Đây đã là production chưa?
 
-Chưa. Đây là local/Docker MVP có health và concurrency smoke. Chưa có public
-deployment, persistent managed database, monitoring, backup, rate limit và
-security audit production.
+Chưa. Đây là local/Docker MVP có Render Free preview và Supabase managed
+Postgres/RLS. Public health và bounded live canary đã pass, nhưng chưa có
+monitoring/backup/load test/security audit production; Render Free có cold start
+và public build chưa mang checkpoint fine-tuned lớn.
 
 ## 11. Có phải RAGAS không?
 

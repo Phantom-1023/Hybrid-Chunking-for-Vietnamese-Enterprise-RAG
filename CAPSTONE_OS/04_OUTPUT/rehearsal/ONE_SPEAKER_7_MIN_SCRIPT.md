@@ -1,71 +1,92 @@
-# Script 7 phút cho một người nói chính
+# SCRIPT BẢO VỆ 7 PHÚT — MỘT NGƯỜI NÓI
 
-Mục tiêu: một người có thể trình bày mạch lạc, demo được, không overclaim RAGAS hoặc enterprise production.
+Status: `CANONICAL / KHỚP DECK 11 SLIDE`
 
-## 0:00-0:30 — Slide 1: Tên đề tài
+## 0:00–0:35 — Slide 1: Mở bài
 
-Chào thầy/cô, đề tài của em là hệ thống RAG cho quản lý tri thức doanh nghiệp trong bối cảnh tiếng Việt. Ở MVP hiện tại, nhóm tập trung vào phần lõi: dataset public tiếng Việt, 4 chiến lược chunking, ChromaDB, truy vấn, Streamlit demo và benchmark evaluation-lite. Mục tiêu là chứng minh hệ thống chạy được và có số liệu thật ban đầu, không dùng benchmark giả.
+“Đề tài của em là Vietnamese Enterprise RAG. Bài toán không chỉ là trả lời đúng,
+mà còn phải tìm đúng bằng chứng tiếng Việt và bảo đảm người dùng chỉ thấy tài
+liệu mình có quyền. Đóng góp chính là fine-tuned Cross-Encoder đã được đưa vào
+query pipeline thật, không chỉ tồn tại ở training script.”
 
-## 0:30-1:00 — Slide 2: Vấn đề
+## 0:35–1:05 — Slide 2: Vấn đề
 
-Với tài liệu tiếng Việt, câu hỏi thường cần đúng đoạn nguồn. Nếu chỉ hỏi LLM trực tiếp, mô hình có thể trả lời tự tin nhưng thiếu căn cứ. RAG giải quyết bằng cách truy xuất source chunks trước, rồi dùng các đoạn đó làm context để sinh câu trả lời. Vì vậy demo của nhóm luôn hiển thị answer cùng source chunks.
+“Tìm kiếm chỉ bằng từ khóa có thể bỏ sót cách diễn đạt cùng nghĩa. Dense retrieval
+có thể bỏ sót mã hoặc tên chính xác. Nếu evidence yếu, LLM vẫn có thể trả lời rất
+trôi chảy. Trong doanh nghiệp còn một rủi ro lớn hơn: tài liệu đúng nhưng sai
+quyền truy cập.”
 
-## 1:00-1:30 — Slide 3: Câu hỏi nghiên cứu
+## 1:05–1:40 — Slide 3: Đóng góp fine-tune
 
-Câu hỏi nghiên cứu là: chiến lược chunking nào giúp RAG tiếng Việt truy xuất đúng ngữ cảnh hơn? Nhóm so sánh fixed, recursive, semantic và paragraph. Mỗi strategy có một collection riêng trong ChromaDB để việc so sánh rõ ràng hơn.
+“Nhóm không fine-tune BM25 và không fine-tune chatbot LLM. Nhóm fine-tune
+Cross-Encoder reranker nhận cặp query–passage. Dense và BM25 tạo top-20 candidate;
+reranker chấm lại và chọn top-5 evidence. Checkpoint có training history, reload
+test, checksum và before/after metrics.”
 
-## 1:30-2:00 — Slide 4-5: Review response và dataset
+## 1:40–2:10 — Slide 4: Pipeline
 
-Ở Review 1, nhóm nhận góp ý về dataset độc lập, prototype website và pipeline rõ. Nhóm phản hồi bằng dataset public `sailor2/Vietnamese_RAG`, config `BKAI_RAG`, có ground truth và không phụ thuộc dữ liệu doanh nghiệp đóng. UI có thể chọn hoặc random record thật, nên demo không phải câu hỏi khóa cứng.
+“Luồng xử lý là: User JWT vào SQL RLS/ACL trước; sau đó BM25 và Dense retrieval;
+RRF trộn hai ranking; fine-tuned Cross-Encoder rerank; cuối cùng chỉ top-5 được
+đưa tới answer/citation. Vì ACL đứng đầu, model không nhận được document bị cấm.”
 
-## 2:00-2:40 — Slide 6-7: Kiến trúc và chunking
+## 2:10–2:40 — Slide 5: Data và split
 
-Pipeline gồm: load dataset, join context, chia chunk theo 4 strategy, embed bằng Gemini, lưu vào ChromaDB, khi hỏi thì embed query, retrieve top-k chunks và dùng LLM sinh answer. Fixed đơn giản nhưng có thể cắt ngang ý. Recursive giữ cấu trúc tốt hơn. Semantic hiện có fallback để đảm bảo demo chạy được. Paragraph chia theo đoạn văn và hiện cho tín hiệu tốt trong benchmark-lite.
+“Dataset có 1.141 query, chia seed 42 thành 913 train, 114 validation và 114 test.
+Nhóm kiểm tra không trùng question hoặc query-passage pair giữa split. Checkpoint
+chỉ chọn theo validation. Phạm vi là query generalization trên cùng corpus, chưa
+phải document generalization.”
 
-## 2:40-3:10 — Slide 8: Trạng thái MVP
+## 2:40–3:25 — Slide 6: Kết quả
 
-Đến hiện tại, MVP đã có verify mode, ChromaDB index, CLI query, Streamlit demo, real dataset demo và evaluation-lite benchmark CSV. Đây là các phần đã chạy được. Phần chưa claim là full RAGAS và enterprise production.
+“Trên cùng locked test và cùng Hybrid top-20: no-rerank MRR 0.669; MMR 0.699;
+base Cross-Encoder 0.779; fine-tuned Cross-Encoder 0.945. Fine-tuned Hit@1 là
+0.930 và Hit@5 là 0.974. Đây là retrieval evaluation, không phải full RAGAS.”
 
-## 3:10-5:00 — Chuyển sang demo live
+## 3:25–3:55 — Slide 7: Audit trail
 
-Mở `http://localhost:8503`.
+“Training chạy 2 epoch, 572 optimization step. Checkpoint tốt nhất là epoch 1
+theo validation. Weights-changed và reload đều pass. Error analysis top-5 có
+109 hit→hit, 2 miss→hit, 3 miss→miss và không có hit→miss. Validation 1.0 là dấu
+hiệu bão hòa nên nhóm không dùng nó làm claim cải thiện.”
 
-Nói khi mở UI: Đây là giao diện Streamlit demo. Trên đầu có note execution patch: hiện dùng `gemini-embedding-001` vì API key chưa hỗ trợ `text-embedding-004`; đây là patch runtime, không đổi mission.
+## 3:55–4:35 — Slide 8: ACL
 
-Thao tác:
+“MVP có admin, manager, member và scope organization, department, private.
+Supabase Auth cấp JWT; Postgres RLS là ranh giới bảo mật. Live canary dùng HR và
+Finance đã chứng minh hai chiều không list hoặc retrieve tài liệu chéo phòng.
+Canary còn giúp nhóm phát hiện và sửa việc chat cũ còn trên client khi đổi user.”
 
-1. Chọn strategy `paragraph` ở sidebar.
-2. Mở tab "Demo với dữ liệu thật".
-3. Random hoặc chọn một record.
-4. Chỉ vào `record_id`, question, ground truth, context preview.
-5. Bấm "Hỏi bằng câu hỏi này".
-6. Khi answer hiện ra, mở source chunks.
+## 4:35–5:30 — Slide 9: Demo
 
-Nói trong lúc source chunks hiện: Đây là điểm quan trọng của RAG. Câu trả lời không đứng một mình mà có source chunks để kiểm chứng. Ground truth cho phép so sánh thủ công câu trả lời với dữ liệu gốc.
+1. Đăng nhập admin.
+2. Chỉ nhanh Users, Departments và Documents.
+3. Đăng nhập một member hoặc dùng evidence canary đã khóa.
+4. Hỏi một câu và mở citation.
+5. Chỉ dòng “tài liệu qua ACL” và title của evidence.
+6. Mở Audit nếu còn thời gian.
 
-## 5:00-5:50 — Slide 11-12 hoặc benchmark tab
+Nói: “Public preview dùng Supabase RLS nhưng tài khoản admin thật cần user tự
+bootstrap. Nếu demo account chưa được tạo, em dùng Docker local hoặc screenshot
+canary thay vì nhập credential trên sân khấu.”
 
-Chuyển sang tab "Benchmark evaluation-lite".
+## 5:30–6:15 — Slide 10: Verification và giới hạn
 
-Nói: Đây là benchmark nhỏ thật, chưa phải full RAGAS. Nhóm chạy 5 sample để kiểm tra retrieval behavior. Kết quả `avg_score`: fixed 0.3344, recursive 0.3410, semantic 0.3313, paragraph 0.8354. Trong evaluation-lite này paragraph tốt nhất, nhưng nhóm không kết luận học thuật cuối cùng vì full RAGAS chưa chạy.
+“Canonical suite hiện có 63 test pass. Docker image và container health pass.
+Public homepage và health endpoint trả HTTP 200. Nhóm từng chạy 20 request local
+đều thành công, nhưng đây chỉ là concurrency smoke, không phải cam kết capacity
+20 user. Render Free có cold start và public build chưa mang checkpoint lớn.”
 
-Giải thích metric nhanh: `top1_hit_rate` và `topk_hit_rate` kiểm tra truy xuất đúng record. `avg_distance` là khoảng cách retrieval. `answer_keyword_overlap` là overlap keyword với ground truth, lần này dùng retrieved source chunks để tránh quota LLM trong benchmark.
+## 6:15–7:00 — Slide 11: Kết luận
 
-## 5:50-6:30 — Slide 13: Limitations
+“Kết quả cho thấy đóng góp khoa học và sản phẩm đã gặp nhau: reranker fine-tuned
+cải thiện ranking có đo lường; runtime dùng checkpoint thật; ACL đứng trước
+retrieval; web, Docker, Supabase canary và preview tạo thành một MVP có thể demo.
+Nhóm không claim full RAGAS, document generalization hoặc production readiness.”
 
-Nhóm minh bạch các giới hạn: full RAGAS chưa chạy; evaluation-lite chỉ 5 mẫu; semantic chunking có fallback; embedding đang dùng execution patch `gemini-embedding-001`; chưa có upload tài liệu doanh nghiệp thật. Đây là lý do nhóm gọi hiện tại là MVP, không phải hệ thống production.
+## Nếu demo lỗi
 
-## 6:30-6:50 — Slide 14: Future work
-
-Hướng Enterprise sau MVP gồm upload và batch ingestion tài liệu doanh nghiệp, metadata nâng cao, phân quyền, audit log, monitoring, hybrid search, reranking và GraphRAG. Các phần này là định hướng mở rộng, không claim đã hoàn thành.
-
-## 6:50-7:00 — Slide 15: Kết luận
-
-Tóm lại, MVP đã chứng minh RAG end-to-end chạy được trên dataset public tiếng Việt, có source chunks để kiểm chứng và có benchmark-lite thật. Bước tiếp theo là full RAGAS, hoàn thiện report và slide final. Em xin chuyển sang phần Q&A.
-
-## Câu cấm nói
-
-- Không nói: "Đã hoàn thành RAGAS."
-- Không nói: "Paragraph chắc chắn tốt nhất."
-- Không nói: "Hệ thống đã production-ready."
-- Không nói: "Đã hỗ trợ upload tài liệu doanh nghiệp."
+- Public cold start: chuyển sang Docker local.
+- Không có admin thật: dùng artifact live canary và screenshot.
+- Checkpoint không được mount: nói rõ public đang BM25 fallback; mở integration
+  evidence local để chứng minh checkpoint trong runtime.
+- Mạng lỗi: trình bày Figma + slide + evidence JSON, không bịa trạng thái live.

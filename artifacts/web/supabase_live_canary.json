@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "run_date": "2026-07-30",
+  "environment": "render_free_plus_supabase_managed",
+  "public_url": "https://vietnamese-enterprise-rag-demo.onrender.com",
+  "deployed_commit": "0862b89",
+  "test_topology": {
+    "temporary_admin_users": 1,
+    "temporary_member_users": 2,
+    "departments": [
+      "hr",
+      "finance"
+    ],
+    "department_documents": 2
+  },
+  "results": {
+    "admin_login": true,
+    "member_admin_navigation_denied": true,
+    "hr_document_list_excludes_finance": true,
+    "finance_document_list_excludes_hr": true,
+    "hr_retrieval_excludes_finance": true,
+    "finance_retrieval_excludes_hr": true,
+    "conversation_cleared_after_logout_login_switch": true,
+    "post_fix_retrieval_acl_still_passes": true
+  },
+  "cleanup": {
+    "pre_cleanup_counts": {
+      "auth_users": 3,
+      "profiles": 3,
+      "documents": 2,
+      "departments": 2
+    },
+    "post_cleanup_counts": {
+      "auth_users": 0,
+      "profiles": 0,
+      "documents": 0,
+      "departments": 0
+    }
+  },
+  "security_notes": [
+    "Passwords and tokens are intentionally omitted.",
+    "The first run exposed stale client-side chat history after switching users; commit 0862b89 fixed it and the live regression canary passed.",
+    "The public preview has no permanent admin account after cleanup."
+  ],
+  "claim_boundary": "This proves a bounded two-department live canary, not production capacity, penetration testing, or long-running multi-tenant operation."
+}

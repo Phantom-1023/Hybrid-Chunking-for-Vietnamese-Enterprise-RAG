@@ -43,17 +43,20 @@ validation, không chọn theo test. Không gọi đây là RAGAS.
 
 ## 5:10–6:10 — Bằng chứng kỹ thuật
 
-- Chạy `python -m pytest tests -q`: 58 pass.
+- Chạy `.venv\Scripts\python.exe -m pytest tests -q`: 63 pass.
 - Docker health: healthy.
 - 20 request đồng thời local: 20/20 HTTP 200, p95 khoảng 1.72 giây.
+- Public preview: homepage và `/api/health` HTTP 200.
+- Supabase live canary: HR ↔ Finance denial và session-switch privacy pass.
 
 Nói rõ đây là smoke test một máy, không phải cam kết production.
 
 ## 6:10–7:00 — Kết luận và giới hạn
 
 “Đóng góp chính là reranker fine-tuned được tích hợp thật vào retrieval, có
-đánh giá trước/sau và ACL-first. Hiện MVP chạy local/Docker. Bước tiếp theo là
-Supabase/Postgres RLS, public preview và đánh giá generation/RAGAS.”
+đánh giá trước/sau và ACL-first. MVP đã chạy local/Docker, có Supabase RLS
+live canary và public preview. Bước tiếp theo là permanent admin bootstrap,
+đóng gói checkpoint cho môi trường có đủ tài nguyên và đánh giá generation/RAGAS.”
 
 ## Fallback
 
