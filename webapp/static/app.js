@@ -2,8 +2,21 @@ const state={token:localStorage.getItem("rag_token")||"",me:null,departments:[],
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 function toast(message,error=false){const el=$("#toast");el.textContent=message;el.className=`toast show${error?" error":""}`;setTimeout(()=>el.className="toast",2600)}
 async function api(path,options={}){const headers={"Content-Type":"application/json",...(options.headers||{})};if(state.token)headers.Authorization=`Bearer ${state.token}`;const response=await fetch(path,{...options,headers});if(!response.ok){let detail="Có lỗi xảy ra";try{detail=(await response.json()).detail||detail}catch{}throw new Error(detail)}return response.status===204?null:response.json()}
-function setSession(token){state.token=token;localStorage.setItem("rag_token",token)}
-function clearSession(){state.token="";state.me=null;localStorage.removeItem("rag_token");$("#app-view").classList.add("hidden");$("#auth-view").classList.remove("hidden")}
+function resetUserScopedUi(){
+  state.departments=[];
+  state.documents=[];
+  $("#conversation").replaceChildren();
+  $("#welcome").classList.remove("hidden");
+  $("#question").value="";
+  $("#document-table").replaceChildren();
+  $("#user-list").replaceChildren();
+  $("#department-list").replaceChildren();
+  $("#audit-table").replaceChildren();
+  $("#login-form").reset();
+  $("#setup-form").reset();
+}
+function setSession(token){resetUserScopedUi();state.token=token;localStorage.setItem("rag_token",token)}
+function clearSession(){resetUserScopedUi();state.token="";state.me=null;localStorage.removeItem("rag_token");$("#app-view").classList.add("hidden");$("#auth-view").classList.remove("hidden")}
 function showApp(){ $("#auth-view").classList.add("hidden");$("#app-view").classList.remove("hidden");$("#profile-name").textContent=state.me.display_name;$("#profile-meta").textContent=`${state.me.role} · ${state.me.department_name||"Toàn tổ chức"}`;$("#avatar").textContent=state.me.display_name.slice(0,1).toUpperCase();$("#department-badge").textContent=state.me.department_name||"Toàn tổ chức";$$("[data-admin-only]").forEach(el=>el.classList.toggle("hidden",state.me.role!=="admin"))}
 async function boot(){if(!state.token)return;try{state.me=await api("/api/me");showApp();await Promise.all([loadDepartments(),loadDocuments()])}catch{clearSession()}}
 $("#login-form").addEventListener("submit",async e=>{e.preventDefault();try{const result=await api("/api/login",{method:"POST",body:JSON.stringify({email:$("#login-email").value,password:$("#login-password").value})});setSession(result.access_token);await boot()}catch(err){toast(err.message,true)}})
