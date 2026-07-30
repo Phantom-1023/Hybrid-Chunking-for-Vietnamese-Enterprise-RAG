@@ -27,7 +27,7 @@ không phá MVP hiện tại và không claim vượt quá bằng chứng.
 | P4 — PASS V0 | FigJam/Figma và web shell | Luồng UX/ACL được duyệt bằng testable spec | Web + editable Figma product board |
 | P5 — PASS LOCAL | Auth, department, role và document ACL | Cross-department denial test pass | Multi-user local MVP |
 | P6 — PASS PREVIEW | Docker, temporary deploy, smoke/load test | Local Docker + public HTTP health pass | Render Free URL |
-| P7 — PASS | README/report/slides/demo/defense | Mọi claim trỏ được tới evidence | Final report draft + canonical evidence/demo/defense pack + final defense deck |
+| P7 — PASS | README/report/slides/demo/defense | Mọi claim trỏ được tới evidence | Final report Markdown + editable DOCX + canonical evidence/demo/defense pack + final defense deck |
 
 P0 evidence:
 

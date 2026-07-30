@@ -27,7 +27,7 @@ evidence có citation.
 | Supabase live canary | HR ↔ Finance denial; session-switch privacy pass | `artifacts/web/supabase_live_canary.json` |
 | Thiết kế | editable Figma product board | `artifacts/design/figma_delivery.json` |
 | Slide bảo vệ | 11 slide, render/overflow QA pass | `CAPSTONE_OS/04_OUTPUT/slides/RAG_ENTERPRISE_FINAL_DEFENSE.pptx` |
-| Báo cáo kỹ thuật | final draft đồng bộ evidence/limitations | `CAPSTONE_OS/04_OUTPUT/report/FINAL_REPORT_DRAFT.md` |
+| Báo cáo kỹ thuật | final draft đồng bộ evidence/limitations | `CAPSTONE_OS/04_OUTPUT/report/FINAL_REPORT_DRAFT.md`, `VIETNAMESE_ENTERPRISE_RAG_FINAL_REPORT.docx` |
 
 ## Không được nói quá
 
@@ -47,5 +47,5 @@ evidence có citation.
 - Supabase schema/RLS + runtime adapter + live two-user RLS canary: pass.
 - Same-browser logout/login privacy: pass sau bản vá `0862b89`.
 - Public preview: pass HTTP health; permanent user-owned admin bootstrap còn pending.
-- Slide chính thức và final report draft: pass; cùng dùng evidence index làm bảng
-  số liệu khóa.
+- Slide chính thức và final report Markdown/DOCX: pass; cùng dùng evidence index
+  làm bảng số liệu khóa.
