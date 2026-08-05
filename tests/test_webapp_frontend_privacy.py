@@ -13,5 +13,5 @@ def test_session_switch_clears_user_scoped_frontend_state():
 def test_login_copy_does_not_claim_a_specific_password_backend():
     page = Path("webapp/static/index.html").read_text(encoding="utf-8")
 
-    assert "Hệ thống không lưu mật khẩu dạng rõ." in page
+    assert "Dùng tài khoản do quản trị viên cấp." not in page
     assert "Mật khẩu được băm PBKDF2" not in page

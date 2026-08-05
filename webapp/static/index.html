@@ -10,27 +10,19 @@
   <div id="toast" class="toast" aria-live="polite"></div>
 
   <main id="auth-view" class="auth-shell">
-    <section class="auth-brand">
-      <div class="brand-mark">K</div>
-      <p class="eyebrow">Vietnamese Enterprise RAG</p>
-      <h1>Tri thức đúng người.<br>Đúng quyền. Có dẫn nguồn.</h1>
-      <p class="lead">Không gian hỏi đáp nội bộ với kiểm soát truy cập theo phòng ban và bằng chứng có thể kiểm tra.</p>
-      <div class="trust-row">
-        <span>ACL trước retrieval</span><span>Audit trail</span><span>Top-5 citations</span>
-      </div>
-    </section>
     <section class="auth-card">
       <div>
-        <p class="eyebrow">Đăng nhập hệ thống</p>
-        <h2>Chào mừng trở lại</h2>
-        <p class="muted">Dùng tài khoản do quản trị viên cấp.</p>
+        <div class="auth-logo">K</div><h2>Đăng nhập</h2>
       </div>
       <form id="login-form">
         <label>Email<input id="login-email" type="email" required autocomplete="username" placeholder="ban@doanhnghiep.vn"></label>
         <label>Mật khẩu<input id="login-password" type="password" required autocomplete="current-password" placeholder="••••••••••••"></label>
         <button class="primary" type="submit">Đăng nhập <span>→</span></button>
       </form>
-      <button id="show-setup" class="text-button" type="button">Thiết lập quản trị viên lần đầu</button>
+      <div class="auth-links"><button id="show-register" class="text-button" type="button">Đăng ký</button><button id="show-forgot" class="text-button" type="button">Quên mật khẩu?</button></div>
+      <form id="register-form" class="hidden"><label>Họ tên<input id="register-name" required></label><label>Email<input id="register-email" type="email" required></label><label>Mật khẩu<input id="register-password" type="password" minlength="10" required></label><button class="primary">Tạo tài khoản</button></form>
+      <form id="forgot-form" class="hidden"><label>Email<input id="forgot-email" type="email" required></label><button class="secondary">Gửi hướng dẫn</button></form>
+      <button id="show-setup" class="text-button hidden" type="button">Thiết lập quản trị viên lần đầu</button>
       <form id="setup-form" class="hidden">
         <div class="divider"><span>Thiết lập một lần</span></div>
         <label>Tên hiển thị<input id="setup-name" required value="Quản trị viên"></label>
@@ -38,7 +30,6 @@
         <label>Mật khẩu khởi tạo<input id="setup-password" type="password" minlength="10" required></label>
         <button class="secondary" type="submit">Tạo quản trị viên</button>
       </form>
-      <p class="security-note">Hệ thống không lưu mật khẩu dạng rõ.</p>
     </section>
   </main>
 
@@ -53,7 +44,7 @@
       </nav>
       <div class="sidebar-bottom">
         <div class="system-state"><span class="pulse"></span><div><strong>Hệ thống sẵn sàng</strong><small>ACL-first retrieval</small></div></div>
-        <button id="logout" class="profile"><span id="avatar">U</span><div><strong id="profile-name">User</strong><small id="profile-meta">Member</small></div><b>⋯</b></button>
+        <div class="account-menu hidden" id="account-menu"><button data-account-action="profile">Hồ sơ của tôi</button><button data-account-action="password">Đổi mật khẩu</button><button data-account-action="logout">Đăng xuất</button></div><button id="account-trigger" class="profile"><span id="avatar">U</span><div><strong id="profile-name">User</strong><small id="profile-meta">Member</small></div><b>⋯</b></button>
       </div>
     </aside>
 
@@ -124,6 +115,7 @@
         <div class="panel table-panel"><table><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hành động</th><th>Tài nguyên</th><th>Kết quả</th></tr></thead><tbody id="audit-table"></tbody></table></div>
       </section>
     </main>
+    <form id="profile-form" class="drawer hidden"><div class="drawer-head"><h3>Hồ sơ của tôi</h3><button type="button" data-close="profile-form">×</button></div><label>Tên hiển thị<input id="profile-display-name" required></label><button class="primary">Lưu thay đổi</button></form><form id="password-form" class="drawer hidden"><div class="drawer-head"><h3>Đổi mật khẩu</h3><button type="button" data-close="password-form">×</button></div><label>Mật khẩu mới<input id="new-password" type="password" minlength="10" required></label><button class="primary">Cập nhật mật khẩu</button></form>
   </div>
   <script src="/static/app.js?v=20260731-v2-assetfix"></script>
 </body>
