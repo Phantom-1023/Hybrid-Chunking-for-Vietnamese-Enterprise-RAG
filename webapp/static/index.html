@@ -4,16 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>KnowledgeOS · Enterprise RAG</title>
-  <link rel="stylesheet" href="/static/styles.css?v=semi-ver1.00">
+  <link rel="stylesheet" href="/static/styles.css?v=semi-ver1.0.1">
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
 
   <main id="auth-view" class="auth-shell">
-    <section class="auth-card">
-      <div>
-        <div class="auth-logo">K</div><h2>Đăng nhập</h2>
-      </div>
+    <div class="auth-ambient" aria-hidden="true"><span class="graph-node node-a"></span><span class="graph-node node-b"></span><span class="graph-node node-c"></span><span class="graph-node node-d"></span><span class="graph-line line-a"></span><span class="graph-line line-b"></span><span class="graph-line line-c"></span></div>
+    <section class="auth-stage">
+      <div class="auth-brandline"><div class="auth-logo">K</div><div><strong>KnowledgeOS</strong><span>Enterprise RAG</span></div></div>
+      <section class="auth-card">
+        <div class="auth-heading"><p class="auth-kicker">Internal knowledge gateway</p><h2>Đăng nhập</h2></div>
       <form id="login-form">
         <label>Email<input id="login-email" type="email" required autocomplete="username" placeholder="ban@doanhnghiep.vn"></label>
         <label>Mật khẩu<input id="login-password" type="password" required autocomplete="current-password" placeholder="••••••••••••"></label>
@@ -30,6 +31,8 @@
         <label>Mật khẩu khởi tạo<input id="setup-password" type="password" minlength="10" required></label>
         <button class="secondary" type="submit">Tạo quản trị viên</button>
       </form>
+      </section>
+      <div class="auth-status"><span class="status-dot"></span><span>Hệ thống sẵn sàng</span><span class="status-divider">·</span><span class="lock-icon" aria-hidden="true">⌑</span><span>Truy cập theo quyền</span></div>
     </section>
   </main>
 
@@ -121,8 +124,8 @@
         <div class="panel table-panel"><table><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hành động</th><th>Tài nguyên</th><th>Kết quả</th></tr></thead><tbody id="audit-table"></tbody></table></div>
       </section>
     </main>
-    <form id="profile-form" class="drawer hidden"><div class="drawer-head"><h3>Hồ sơ của tôi</h3><button type="button" data-close="profile-form">×</button></div><label>Tên hiển thị<input id="profile-display-name" required></label><button class="primary">Lưu thay đổi</button></form><form id="password-form" class="drawer hidden"><div class="drawer-head"><h3>Đổi mật khẩu</h3><button type="button" data-close="password-form">×</button></div><label>Mật khẩu mới<input id="new-password" type="password" minlength="10" required></label><button class="primary">Cập nhật mật khẩu</button></form>
+    <form id="profile-form" class="drawer hidden"><div class="drawer-head profile-title"><h3>Hồ sơ của tôi</h3><button type="button" data-close="profile-form">×</button></div><div class="profile-overview"><div class="profile-item"><span>Tên</span><strong id="profile-name-value">—</strong></div><div class="profile-item"><span>Vai trò</span><strong id="profile-role-value">—</strong></div><div class="profile-item" id="profile-department-item"><span>Phòng ban</span><strong id="profile-department-value">—</strong></div><div class="profile-item"><span>Email</span><strong id="profile-email-value">—</strong></div></div><div class="profile-edit"><label>Tên hiển thị<input id="profile-display-name" required></label><button class="primary profile-save">Lưu thay đổi</button></div></form><form id="password-form" class="drawer hidden"><div class="drawer-head"><h3>Đổi mật khẩu</h3><button type="button" data-close="password-form">×</button></div><label>Mật khẩu mới<input id="new-password" type="password" minlength="10" required></label><button class="primary">Cập nhật mật khẩu</button></form>
   </div>
-  <script src="/static/app.js?v=semi-ver1.00"></script>
+  <script src="/static/app.js?v=semi-ver1.0.1"></script>
 </body>
 </html>
