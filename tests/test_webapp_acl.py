@@ -43,6 +43,32 @@ def test_self_service_registration_profile_and_password_change(tmp_path):
         assert renewed_login.status_code == 200
 
 
+def test_admin_user_directory_is_paginated_and_supports_safe_account_actions(tmp_path):
+    app = create_app(database_path=tmp_path / "webapp.db", token_secret="test-secret-that-is-long-and-local-only")
+    with TestClient(app) as client:
+        setup = client.post("/api/setup", json={"email": "admin@example.test", "display_name": "Admin", "password": "AdminPassphrase123!"})
+        headers = _auth(setup.json()["access_token"])
+        department = client.post("/api/departments", headers=headers, json={"name": "Operations", "description": "Runs operations"}).json()
+        for number in range(12):
+            response = client.post("/api/users", headers=headers, json={
+                "email": f"member{number}@example.test", "display_name": f"Member {number}",
+                "password": "MemberPassphrase123!", "role": "member", "department_id": department["id"],
+            })
+            assert response.status_code == 201
+        directory = client.get("/api/users?page=2&page_size=10&search=member", headers=headers)
+        assert directory.status_code == 200
+        assert directory.json()["total"] == 12
+        assert len(directory.json()["items"]) == 2
+        target = directory.json()["items"][0]
+        assert target["employee_code"].startswith("PB-")
+        assert client.patch(f"/api/users/{target['id']}", headers=headers, json={"is_active": False}).status_code == 200
+        assert client.post(f"/api/users/{target['id']}/password", headers=headers, json={"password": "ReplacementPassphrase123!"}).status_code == 200
+        detail = client.get(f"/api/users/{target['id']}", headers=headers)
+        assert detail.status_code == 200
+        assert "password_hash" not in detail.json()["user"]
+        assert client.delete(f"/api/users/{target['id']}", headers=headers).status_code == 204
+
+
 class _FakeReranker:
     def __init__(self):
         self.seen_titles = []

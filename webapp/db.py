@@ -13,6 +13,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS departments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS users (
@@ -99,6 +100,7 @@ class Database:
         with self.connect() as connection:
             connection.executescript(SCHEMA)
             self._ensure_document_columns(connection)
+            self._ensure_department_columns(connection)
             connection.execute(
                 """
                 INSERT INTO document_chunks (document_id, content, locator, chunk_index)
@@ -125,6 +127,12 @@ class Database:
         for name, definition in additions.items():
             if name not in existing:
                 connection.execute(f"ALTER TABLE documents ADD COLUMN {name} {definition}")
+
+    @staticmethod
+    def _ensure_department_columns(connection: sqlite3.Connection) -> None:
+        existing = {row["name"] for row in connection.execute("PRAGMA table_info(departments)")}
+        if "description" not in existing:
+            connection.execute("ALTER TABLE departments ADD COLUMN description TEXT NOT NULL DEFAULT ''")
 
     def query_all(self, sql: str, parameters=()) -> list[dict]:
         with self.connect() as connection:

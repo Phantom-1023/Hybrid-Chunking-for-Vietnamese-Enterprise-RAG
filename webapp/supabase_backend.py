@@ -238,24 +238,24 @@ class SupabaseBackend:
             params={"select": "*", "order": "name"},
         ).json()
 
-    def create_department(self, token: str, name: str) -> dict[str, Any]:
+    def create_department(self, token: str, name: str, description: str = "") -> dict[str, Any]:
         rows = self._request(
             "POST",
             "/rest/v1/departments",
             token=token,
             headers={"Prefer": "return=representation"},
-            json={"name": name},
+            json={"name": name, "description": description},
         ).json()
         return rows[0]
 
-    def update_department(self, token: str, department_id: str, name: str) -> dict[str, Any]:
+    def update_department(self, token: str, department_id: str, name: str, description: str = "") -> dict[str, Any]:
         rows = self._request(
             "PATCH",
             "/rest/v1/departments",
             token=token,
             headers={"Prefer": "return=representation"},
             params={"id": f"eq.{department_id}"},
-            json={"name": name},
+            json={"name": name, "description": description},
         ).json()
         if not rows:
             raise SupabaseBackendError(404, "Không tìm thấy phòng ban")
@@ -267,12 +267,24 @@ class SupabaseBackend:
         )
 
     def department_memberships(self, token: str, department_id: str) -> list[dict[str, Any]]:
-        return self._request(
+        members = self._request(
             "GET",
             "/rest/v1/department_memberships",
             token=token,
             params={"select": "department_id,user_id,role,created_at", "department_id": f"eq.{department_id}"},
         ).json()
+        if not members:
+            return []
+        ids = ",".join(str(member["user_id"]) for member in members)
+        profiles = self._request(
+            "GET", "/rest/v1/profiles", service=True,
+            params={"select": "id,display_name,email,is_active", "id": f"in.({ids})"},
+        ).json()
+        by_id = {str(profile["id"]): profile for profile in profiles}
+        for member in members:
+            profile = by_id.get(str(member["user_id"]), {})
+            member.update({"display_name": profile.get("display_name"), "email": profile.get("email"), "is_active": profile.get("is_active", True)})
+        return members
 
     def add_membership(self, token: str, department_id: str, user_id: str, role: str) -> None:
         self._request(
@@ -363,7 +375,7 @@ class SupabaseBackend:
         return str(user_id)
 
     def update_profile(self, user_id: str, updates: dict[str, Any]) -> dict[str, Any]:
-        allowed = {"display_name", "role", "department_id", "is_active"}
+        allowed = {"email", "display_name", "role", "department_id", "is_active"}
         payload = {key: value for key, value in updates.items() if key in allowed}
         rows = self._request(
             "PATCH", "/rest/v1/profiles", service=True,
@@ -373,8 +385,29 @@ class SupabaseBackend:
             raise SupabaseBackendError(404, "Không tìm thấy người dùng")
         return rows[0]
 
+    def update_user(self, user_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+        """Admin-only identity update; email must be changed in Auth and profile."""
+        updates = dict(updates)
+        email = updates.pop("email", None)
+        if email:
+            self._request(
+                "PUT", f"/auth/v1/admin/users/{user_id}", service=True,
+                json={"email": email, "email_confirm": True},
+            )
+            updates["email"] = email
+        return self.update_profile(user_id, updates)
+
     def change_password(self, user_id: str, password: str) -> None:
         self._request("PUT", f"/auth/v1/admin/users/{user_id}", service=True, json={"password": password})
+
+    def delete_user(self, user_id: str) -> None:
+        self._request("DELETE", f"/auth/v1/admin/users/{user_id}", service=True)
+
+    def owned_documents(self, user_id: str) -> list[dict[str, Any]]:
+        return self._request(
+            "GET", "/rest/v1/documents", service=True,
+            params={"select": "id", "owner_id": f"eq.{user_id}", "limit": "1"},
+        ).json()
 
     def _delete_auth_user(self, user_id: str) -> None:
         try:

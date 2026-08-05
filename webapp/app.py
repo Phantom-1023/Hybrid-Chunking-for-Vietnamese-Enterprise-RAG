@@ -48,6 +48,7 @@ class ProfileUpdate(BaseModel):
 
 class DepartmentCreate(BaseModel):
     name: str = Field(min_length=2, max_length=80)
+    description: str = Field(default="", max_length=500)
 
 
 class UserCreate(BaseModel):
@@ -59,6 +60,7 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    email: str | None = None
     display_name: str | None = Field(default=None, min_length=2, max_length=80)
     role: Literal["admin", "manager", "member"] | None = None
     department_id: int | str | None = None
@@ -74,6 +76,11 @@ class DocumentCreate(BaseModel):
 
 class DepartmentUpdate(BaseModel):
     name: str = Field(min_length=2, max_length=80)
+    description: str = Field(default="", max_length=500)
+
+
+class AdminPasswordReset(BaseModel):
+    password: str = Field(min_length=10, max_length=200)
 
 
 class MembershipCreate(BaseModel):
@@ -391,6 +398,7 @@ def create_app(
             department = supabase_backend.create_department(
                 admin["_access_token"],
                 payload.name.strip(),
+                payload.description.strip(),
             )
             supabase_backend.audit(
                 admin["_access_token"],
@@ -403,7 +411,8 @@ def create_app(
             return department
         try:
             department_id = db.execute(
-                "INSERT INTO departments (name) VALUES (?)", (payload.name.strip(),)
+                "INSERT INTO departments (name, description) VALUES (?, ?)",
+                (payload.name.strip(), payload.description.strip()),
             )
         except Exception as exc:
             raise HTTPException(status_code=409, detail="Department already exists") from exc
@@ -424,7 +433,7 @@ def create_app(
     ):
         if supabase_backend is not None:
             department = supabase_backend.update_department(
-                admin["_access_token"], str(department_id), payload.name.strip()
+                admin["_access_token"], str(department_id), payload.name.strip(), payload.description.strip()
             )
             supabase_backend.audit(
                 admin["_access_token"], actor_id=str(admin["id"]), action="update",
@@ -432,7 +441,8 @@ def create_app(
             )
             return department
         if not db.execute_count(
-            "UPDATE departments SET name = ? WHERE id = ?", (payload.name.strip(), department_id)
+            "UPDATE departments SET name = ?, description = ? WHERE id = ?",
+            (payload.name.strip(), payload.description.strip(), department_id)
         ):
             raise HTTPException(status_code=404, detail="Không tìm thấy phòng ban")
         db.audit(user_id=admin["id"], action="update", resource_type="department", resource_id=str(department_id), outcome="allowed")
@@ -539,18 +549,69 @@ def create_app(
         db.audit(user_id=user["id"], action="delete", resource_type="department_membership", resource_id=f"{department_id}:{member_id}", outcome="allowed")
         return Response(status_code=204)
 
+    def _employee_code(user: dict) -> str:
+        department = str(user.get("department_id") or "ORG").replace("-", "")[-4:].upper()
+        role = {"admin": "AD", "manager": "QL", "member": "TV"}.get(user.get("role"), "TV")
+        raw = str(user.get("id") or user.get("user_id") or "0").replace("-", "")
+        numeric = int(raw[-6:], 16) if any(char.isalpha() for char in raw[-6:]) else int(raw[-6:] or 0)
+        return f"PB-{department}-{role}-{numeric % 1_000_000:06d}"
+
+    def _public_user(user: dict) -> dict:
+        item = dict(user)
+        item.pop("password_hash", None)
+        item["employee_code"] = _employee_code(item)
+        item["department_code"] = f"PB-{str(item.get('department_id') or 'ORG').replace('-', '')[-4:].upper()}"
+        return item
+
     @app.get("/api/users")
-    def users(admin: Annotated[dict, Depends(require_admin)]):
+    def users(
+        admin: Annotated[dict, Depends(require_admin)],
+        page: int = 1,
+        page_size: int = 10,
+        search: str = "",
+        department_id: str = "",
+    ):
+        page = max(page, 1)
+        page_size = min(max(page_size, 1), 100)
         if supabase_backend is not None:
-            return supabase_backend.list_users(admin["_access_token"])
-        return db.query_all(
+            rows = supabase_backend.list_users(admin["_access_token"])
+        else:
+            rows = db.query_all(
             """
             SELECT u.id, u.email, u.display_name, u.role, u.department_id,
                    u.is_active, u.created_at, d.name AS department_name
             FROM users u LEFT JOIN departments d ON d.id = u.department_id
             ORDER BY u.id
             """
+            )
+        needle = search.strip().lower()
+        if needle:
+            rows = [row for row in rows if needle in str(row.get("display_name", "")).lower() or needle in str(row.get("email", "")).lower()]
+        if department_id:
+            rows = [row for row in rows if str(row.get("department_id") or "") == department_id]
+        total = len(rows)
+        start = (page - 1) * page_size
+        return {"items": [_public_user(row) for row in rows[start:start + page_size]], "total": total, "page": page, "page_size": page_size}
+
+    @app.get("/api/users/{user_id}")
+    def user_detail(user_id: int | str, admin: Annotated[dict, Depends(require_admin)]):
+        if supabase_backend is not None:
+            rows = [row for row in supabase_backend.list_users(admin["_access_token"]) if str(row["id"]) == str(user_id)]
+            audits = [row for row in supabase_backend.audit_logs(admin["_access_token"]) if str(row.get("user_id")) == str(user_id)]
+            if not rows:
+                raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+            return {"user": _public_user(rows[0]), "audit": audits[:50]}
+        row = db.query_one(
+            "SELECT u.id, u.email, u.display_name, u.role, u.department_id, u.is_active, u.created_at, d.name AS department_name FROM users u LEFT JOIN departments d ON d.id = u.department_id WHERE u.id = ?",
+            (user_id,),
         )
+        if not row:
+            raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+        audits = db.query_all(
+            "SELECT created_at, action, resource_type, resource_id, outcome, detail FROM audit_log WHERE user_id = ? ORDER BY id DESC LIMIT 50",
+            (user_id,),
+        )
+        return {"user": _public_user(row), "audit": audits}
 
     @app.post("/api/users", status_code=201)
     def create_user(
@@ -626,10 +687,10 @@ def create_app(
         if str(user_id) == str(admin["id"]) and updates.get("is_active") is False:
             raise HTTPException(status_code=409, detail="Không thể khóa tài khoản admin đang đăng nhập")
         if supabase_backend is not None:
-            user = supabase_backend.update_profile(str(user_id), updates)
+            user = supabase_backend.update_user(str(user_id), updates)
             supabase_backend.audit(admin["_access_token"], actor_id=str(admin["id"]), action="update", resource_type="user", resource_id=str(user_id), outcome="allowed")
             return user
-        permitted = {"display_name", "role", "department_id", "is_active"}
+        permitted = {"email", "display_name", "role", "department_id", "is_active"}
         assignments = [name for name in updates if name in permitted]
         values = [updates[name] for name in assignments]
         if not assignments or not db.execute_count(
@@ -642,6 +703,37 @@ def create_app(
             "SELECT id, email, display_name, role, department_id, is_active, created_at FROM users WHERE id = ?",
             (user_id,),
         )
+
+    @app.post("/api/users/{user_id}/password")
+    def reset_user_password(user_id: int | str, payload: AdminPasswordReset, admin: Annotated[dict, Depends(require_admin)]):
+        if str(user_id) == str(admin["id"]):
+            raise HTTPException(status_code=409, detail="Dùng mục Đổi mật khẩu cho chính bạn")
+        if supabase_backend is not None:
+            supabase_backend.change_password(str(user_id), payload.password)
+            supabase_backend.audit(admin["_access_token"], actor_id=str(admin["id"]), action="reset_password", resource_type="user", resource_id=str(user_id), outcome="allowed")
+        else:
+            if not db.execute_count("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(payload.password), user_id)):
+                raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+            db.audit(user_id=admin["id"], action="reset_password", resource_type="user", resource_id=str(user_id), outcome="allowed")
+        return {"ok": True}
+
+    @app.delete("/api/users/{user_id}", status_code=204)
+    def delete_user(user_id: int | str, admin: Annotated[dict, Depends(require_admin)]):
+        if str(user_id) == str(admin["id"]):
+            raise HTTPException(status_code=409, detail="Không thể xóa tài khoản đang đăng nhập")
+        if supabase_backend is not None:
+            if supabase_backend.owned_documents(str(user_id)):
+                raise HTTPException(status_code=409, detail="Người dùng còn tài liệu sở hữu; hãy chuyển hoặc xóa tài liệu trước")
+            supabase_backend.delete_user(str(user_id))
+            supabase_backend.audit(admin["_access_token"], actor_id=str(admin["id"]), action="delete", resource_type="user", resource_id=str(user_id), outcome="allowed")
+            return Response(status_code=204)
+        owned = db.query_one("SELECT COUNT(*) AS count FROM documents WHERE owner_id = ?", (user_id,))
+        if owned and int(owned["count"]):
+            raise HTTPException(status_code=409, detail="Người dùng còn tài liệu sở hữu; hãy chuyển hoặc xóa tài liệu trước")
+        db.execute("UPDATE audit_log SET user_id = NULL WHERE user_id = ?", (user_id,))
+        db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        db.audit(user_id=admin["id"], action="delete", resource_type="user", resource_id=str(user_id), outcome="allowed")
+        return Response(status_code=204)
 
     @app.get("/api/documents")
     def documents(user: Annotated[dict, Depends(current_user)]):
@@ -948,6 +1040,7 @@ def create_app(
                     action="search",
                     resource_type="document",
                     outcome="allowed_empty",
+                    detail=f"question={payload.question[:300]}",
                 )
             else:
                 db.audit(
@@ -955,6 +1048,7 @@ def create_app(
                     action="search",
                     resource_type="document",
                     outcome="allowed_empty",
+                    detail=f"question={payload.question[:300]}",
                 )
             return {
                 "answer": "Chưa có tài liệu nào bạn được phép truy cập.",
@@ -1010,7 +1104,7 @@ def create_app(
                 action="search",
                 resource_type="document",
                 outcome="allowed",
-                detail=f"acl_candidates={len(allowed_chunks)};evidence={len(citations)}",
+                detail=f"question={payload.question[:300]};acl_candidates={len(allowed_chunks)};evidence={len(citations)}",
             )
         else:
             db.audit(
@@ -1018,7 +1112,7 @@ def create_app(
                 action="search",
                 resource_type="document",
                 outcome="allowed",
-                detail=f"acl_candidates={len(allowed_chunks)};evidence={len(citations)}",
+                detail=f"question={payload.question[:300]};acl_candidates={len(allowed_chunks)};evidence={len(citations)}",
             )
         return {
             "answer": answerer.answer(question=payload.question, citations=citations),

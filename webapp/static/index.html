@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>KnowledgeOS · Enterprise RAG</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260805-auth">
+  <link rel="stylesheet" href="/static/styles.css?v=semi-ver1.00">
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
@@ -43,7 +43,6 @@
         <button data-view="audit" data-admin-only><i>◫</i> Nhật ký</button>
       </nav>
       <div class="sidebar-bottom">
-        <div class="system-state"><span class="pulse"></span><div><strong>Hệ thống sẵn sàng</strong><small>ACL-first retrieval</small></div></div>
         <div class="account-menu hidden" id="account-menu"><button data-account-action="profile">Hồ sơ của tôi</button><button data-account-action="password">Đổi mật khẩu</button><button data-account-action="logout">Đăng xuất</button></div><button id="account-trigger" class="profile"><span id="avatar">U</span><div><strong id="profile-name">User</strong><small id="profile-meta">Member</small></div><b>⋯</b></button>
       </div>
     </aside>
@@ -97,8 +96,8 @@
           <article><span>Tài liệu thấy được</span><strong id="stat-documents">—</strong><small>theo quyền quản trị</small></article>
         </div>
         <div class="admin-grid">
-          <div class="panel"><div class="panel-head"><div><p class="eyebrow">People</p><h3>Người dùng</h3></div><button id="open-user-form" class="secondary compact">+ Mời người dùng</button></div><div id="user-list" class="rows"></div></div>
-          <div class="panel"><div class="panel-head"><div><p class="eyebrow">Access domains</p><h3>Phòng ban</h3></div></div><form id="department-form" class="inline-form" data-admin-only><input id="department-name" required placeholder="Tên phòng ban"><button class="secondary compact">Thêm</button></form><div id="department-list" class="chips"></div></div>
+          <div class="panel"><div class="panel-head"><div><p class="eyebrow">People</p><h3>Người dùng</h3></div><button id="open-user-form" class="secondary compact">+ Mời người dùng</button></div><div class="user-filters"><div class="searchbox">⌕ <input id="user-search" placeholder="Tìm tên hoặc email"></div><select id="user-department-filter"><option value="">Tất cả phòng ban</option></select></div><div id="user-list" class="rows"></div><nav id="user-pagination" class="pagination" aria-label="Trang người dùng"></nav></div>
+          <div class="panel"><div class="panel-head"><div><p class="eyebrow">Access domains</p><h3>Phòng ban</h3></div><button id="open-department-form" class="secondary compact" data-admin-only>+ Thêm phòng ban</button></div><div id="department-list" class="department-list"></div></div>
         </div>
         <form id="user-form" class="drawer hidden">
           <div class="drawer-head"><div><p class="eyebrow">Identity</p><h3>Tạo người dùng</h3></div><button type="button" data-close="user-form">×</button></div>
@@ -109,6 +108,13 @@
           <label>Phòng ban<select id="user-department"></select></label>
           <button class="primary" type="submit">Tạo tài khoản</button>
         </form>
+        <form id="department-form" class="drawer hidden" data-admin-only>
+          <div class="drawer-head"><div><p class="eyebrow">Access domain</p><h3>Thêm phòng ban</h3></div><button type="button" data-close="department-form">×</button></div>
+          <label>Tên phòng ban<input id="department-name" required></label>
+          <label>Mô tả<textarea id="department-description" rows="4" placeholder="Phạm vi và trách nhiệm của phòng ban"></textarea></label>
+          <button class="primary" type="submit">Tạo phòng ban</button>
+        </form>
+        <aside id="user-detail-drawer" class="drawer hidden" aria-live="polite"></aside>
       </section>
 
       <section id="view-audit" class="view">
@@ -117,6 +123,6 @@
     </main>
     <form id="profile-form" class="drawer hidden"><div class="drawer-head"><h3>Hồ sơ của tôi</h3><button type="button" data-close="profile-form">×</button></div><label>Tên hiển thị<input id="profile-display-name" required></label><button class="primary">Lưu thay đổi</button></form><form id="password-form" class="drawer hidden"><div class="drawer-head"><h3>Đổi mật khẩu</h3><button type="button" data-close="password-form">×</button></div><label>Mật khẩu mới<input id="new-password" type="password" minlength="10" required></label><button class="primary">Cập nhật mật khẩu</button></form>
   </div>
-  <script src="/static/app.js?v=20260805-auth"></script>
+  <script src="/static/app.js?v=semi-ver1.00"></script>
 </body>
 </html>
