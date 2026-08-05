@@ -7,6 +7,42 @@ def _auth(token):
     return {"Authorization": f"Bearer {token}"}
 
 
+def test_self_service_registration_profile_and_password_change(tmp_path):
+    app = create_app(
+        database_path=tmp_path / "webapp.db",
+        token_secret="test-secret-that-is-long-and-local-only",
+    )
+    with TestClient(app) as client:
+        registered = client.post(
+            "/api/register",
+            json={
+                "email": "member@example.test",
+                "display_name": "Member One",
+                "password": "MemberPassphrase123!",
+            },
+        )
+        assert registered.status_code == 201
+
+        login = client.post(
+            "/api/login",
+            json={"email": "member@example.test", "password": "MemberPassphrase123!"},
+        )
+        headers = _auth(login.json()["access_token"])
+        profile = client.patch("/api/profile", headers=headers, json={"display_name": "Member Two"})
+        assert profile.status_code == 200
+        assert profile.json()["display_name"] == "Member Two"
+
+        changed = client.post(
+            "/api/password/change", headers=headers, json={"password": "ReplacementPassphrase123!"},
+        )
+        assert changed.status_code == 200
+        renewed_login = client.post(
+            "/api/login",
+            json={"email": "member@example.test", "password": "ReplacementPassphrase123!"},
+        )
+        assert renewed_login.status_code == 200
+
+
 class _FakeReranker:
     def __init__(self):
         self.seen_titles = []

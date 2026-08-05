@@ -42,6 +42,10 @@ class PasswordChange(BaseModel):
     password: str = Field(min_length=10, max_length=200)
 
 
+class ProfileUpdate(BaseModel):
+    display_name: str = Field(min_length=2, max_length=80)
+
+
 class DepartmentCreate(BaseModel):
     name: str = Field(min_length=2, max_length=80)
 
@@ -343,6 +347,34 @@ def create_app(
         public_user = dict(user)
         public_user.pop("_access_token", None)
         return public_user
+
+    @app.patch("/api/profile")
+    def update_own_profile(
+        payload: ProfileUpdate,
+        user: Annotated[dict, Depends(current_user)],
+    ):
+        """Allow an authenticated user to update only their own display name."""
+        if supabase_backend is not None:
+            profile = supabase_backend.update_profile(
+                str(user["id"]), {"display_name": payload.display_name.strip()}
+            )
+            supabase_backend.audit(
+                user["_access_token"], actor_id=str(user["id"]), action="update",
+                resource_type="profile", resource_id=str(user["id"]), outcome="allowed",
+            )
+            return profile
+        db.execute(
+            "UPDATE users SET display_name = ? WHERE id = ?",
+            (payload.display_name.strip(), user["id"]),
+        )
+        db.audit(
+            user_id=user["id"], action="update", resource_type="profile",
+            resource_id=str(user["id"]), outcome="allowed",
+        )
+        return db.query_one(
+            "SELECT id, email, display_name, role, department_id, is_active, created_at FROM users WHERE id = ?",
+            (user["id"],),
+        )
 
     @app.get("/api/departments")
     def departments(user: Annotated[dict, Depends(current_user)]):
