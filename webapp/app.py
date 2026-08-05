@@ -35,6 +35,12 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class RegisterRequest(SetupRequest):
+    pass
+
+class PasswordChange(BaseModel):
+    password: str = Field(min_length=10, max_length=200)
+
 
 class DepartmentCreate(BaseModel):
     name: str = Field(min_length=2, max_length=80)
@@ -312,6 +318,25 @@ def create_app(
             "access_token": create_token(user["id"], secret),
             "token_type": "bearer",
         }
+
+    @app.post("/api/register", status_code=201)
+    def register(payload: RegisterRequest):
+        if supabase_backend is not None:
+            user_id = supabase_backend.create_user(email=payload.email.lower().strip(), display_name=payload.display_name, password=payload.password, role="member", department_id=None)
+            return {"id": user_id}
+        try:
+            user_id = db.execute("INSERT INTO users (email, display_name, password_hash, role) VALUES (?, ?, ?, 'member')", (payload.email.lower().strip(), payload.display_name, hash_password(payload.password)))
+        except Exception as exc:
+            raise HTTPException(status_code=409, detail="Email đã được sử dụng") from exc
+        return {"id": user_id}
+
+    @app.post("/api/password/change")
+    def change_password(payload: PasswordChange, user: Annotated[dict, Depends(current_user)]):
+        if supabase_backend is not None:
+            supabase_backend.change_password(str(user["id"]), payload.password)
+        else:
+            db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(payload.password), user["id"]))
+        return {"ok": True}
 
     @app.get("/api/me")
     def me(user: Annotated[dict, Depends(current_user)]):

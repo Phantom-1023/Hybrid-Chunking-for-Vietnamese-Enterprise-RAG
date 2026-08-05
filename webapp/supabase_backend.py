@@ -373,6 +373,9 @@ class SupabaseBackend:
             raise SupabaseBackendError(404, "Không tìm thấy người dùng")
         return rows[0]
 
+    def change_password(self, user_id: str, password: str) -> None:
+        self._request("PUT", f"/auth/v1/admin/users/{user_id}", service=True, json={"password": password})
+
     def _delete_auth_user(self, user_id: str) -> None:
         try:
             self._request(
