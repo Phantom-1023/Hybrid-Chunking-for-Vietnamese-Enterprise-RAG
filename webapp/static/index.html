@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>KnowledgeOS · Enterprise RAG</title>
-  <link rel="stylesheet" href="/static/styles.css?v=semi-ver1.00">
+  <link rel="stylesheet" href="/static/styles.css?v=semi-ver1.0.1">
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
@@ -124,8 +124,8 @@
         <div class="panel table-panel"><table><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hành động</th><th>Tài nguyên</th><th>Kết quả</th></tr></thead><tbody id="audit-table"></tbody></table></div>
       </section>
     </main>
-    <form id="profile-form" class="drawer hidden"><div class="drawer-head"><h3>Hồ sơ của tôi</h3><button type="button" data-close="profile-form">×</button></div><label>Tên hiển thị<input id="profile-display-name" required></label><button class="primary">Lưu thay đổi</button></form><form id="password-form" class="drawer hidden"><div class="drawer-head"><h3>Đổi mật khẩu</h3><button type="button" data-close="password-form">×</button></div><label>Mật khẩu mới<input id="new-password" type="password" minlength="10" required></label><button class="primary">Cập nhật mật khẩu</button></form>
+    <form id="profile-form" class="drawer hidden"><div class="drawer-head profile-title"><h3>Hồ sơ của tôi</h3><button type="button" data-close="profile-form">×</button></div><div class="profile-overview"><div class="profile-item"><span>Tên</span><strong id="profile-name-value">—</strong></div><div class="profile-item"><span>Vai trò</span><strong id="profile-role-value">—</strong></div><div class="profile-item" id="profile-department-item"><span>Phòng ban</span><strong id="profile-department-value">—</strong></div><div class="profile-item"><span>Email</span><strong id="profile-email-value">—</strong></div></div><div class="profile-edit"><label>Tên hiển thị<input id="profile-display-name" required></label><button class="primary profile-save">Lưu thay đổi</button></div></form><form id="password-form" class="drawer hidden"><div class="drawer-head"><h3>Đổi mật khẩu</h3><button type="button" data-close="password-form">×</button></div><label>Mật khẩu mới<input id="new-password" type="password" minlength="10" required></label><button class="primary">Cập nhật mật khẩu</button></form>
   </div>
-  <script src="/static/app.js?v=semi-ver1.00"></script>
+  <script src="/static/app.js?v=semi-ver1.0.1"></script>
 </body>
 </html>
