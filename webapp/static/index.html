@@ -10,10 +10,11 @@
   <div id="toast" class="toast" aria-live="polite"></div>
 
   <main id="auth-view" class="auth-shell">
-    <section class="auth-card">
-      <div>
-        <div class="auth-logo">K</div><h2>Đăng nhập</h2>
-      </div>
+    <div class="auth-ambient" aria-hidden="true"><span class="graph-node node-a"></span><span class="graph-node node-b"></span><span class="graph-node node-c"></span><span class="graph-node node-d"></span><span class="graph-line line-a"></span><span class="graph-line line-b"></span><span class="graph-line line-c"></span></div>
+    <section class="auth-stage">
+      <div class="auth-brandline"><div class="auth-logo">K</div><div><strong>KnowledgeOS</strong><span>Enterprise RAG</span></div></div>
+      <section class="auth-card">
+        <div class="auth-heading"><p class="auth-kicker">Internal knowledge gateway</p><h2>Đăng nhập</h2></div>
       <form id="login-form">
         <label>Email<input id="login-email" type="email" required autocomplete="username" placeholder="ban@doanhnghiep.vn"></label>
         <label>Mật khẩu<input id="login-password" type="password" required autocomplete="current-password" placeholder="••••••••••••"></label>
@@ -30,6 +31,8 @@
         <label>Mật khẩu khởi tạo<input id="setup-password" type="password" minlength="10" required></label>
         <button class="secondary" type="submit">Tạo quản trị viên</button>
       </form>
+      </section>
+      <div class="auth-status"><span class="status-dot"></span><span>Hệ thống sẵn sàng</span><span class="status-divider">·</span><span class="lock-icon" aria-hidden="true">⌑</span><span>Truy cập theo quyền</span></div>
     </section>
   </main>
 
