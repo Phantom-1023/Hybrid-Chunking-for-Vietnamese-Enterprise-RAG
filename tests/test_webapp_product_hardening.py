@@ -195,8 +195,14 @@ def test_restricted_document_requires_explicit_grant_and_manager_is_scoped(tmp_p
             },
         )
         assert updated.status_code == 200, updated.text
+        editor_detail = client.get(f"/api/documents/{document_id}", headers=manager_headers)
+        assert editor_detail.status_code == 200
+        assert editor_detail.json()["grant_user_ids"] == [member.json()["id"]]
         member_docs = client.get("/api/documents", headers=member_headers).json()
         assert [doc["id"] for doc in member_docs] == [document_id]
+        recipient_detail = client.get(f"/api/documents/{document_id}", headers=member_headers)
+        assert recipient_detail.status_code == 200
+        assert "grant_user_ids" not in recipient_detail.json()
 
         finance_login = client.post("/api/login", json={"email": "finance@example.test", "password": "FinancePassphrase123!"})
         finance_headers = _auth(finance_login.json()["access_token"])

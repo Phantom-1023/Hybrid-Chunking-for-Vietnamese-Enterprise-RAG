@@ -1096,6 +1096,28 @@ def create_app(
                 (document_id,),
             )
         document["chunks"] = chunks
+        # Recipient identities are an ACL-management detail, not general
+        # document metadata. Return them only to an authorized editor.
+        try:
+            require_document_editor(user, document)
+        except HTTPException:
+            pass
+        else:
+            if supabase_backend is not None:
+                document["grant_user_ids"] = [
+                    row["user_id"]
+                    for row in supabase_backend.document_grants(
+                        user["_access_token"], str(document_id)
+                    )
+                ]
+            else:
+                document["grant_user_ids"] = [
+                    row["user_id"]
+                    for row in db.query_all(
+                        "SELECT user_id FROM document_access_grants WHERE document_id = ?",
+                        (document_id,),
+                    )
+                ]
         return document
 
     @app.get("/api/documents/{document_id}/download")

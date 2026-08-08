@@ -612,6 +612,15 @@ class SupabaseBackend:
                 json=[{"document_id": document_id, "user_id": user_id} for user_id in user_ids],
             )
 
+    def document_grants(self, token: str, document_id: str) -> list[dict[str, Any]]:
+        """Return grant recipients only when the caller's RLS policy permits editing."""
+        return self._request(
+            "GET",
+            "/rest/v1/document_access_grants",
+            token=token,
+            params={"select": "user_id", "document_id": f"eq.{document_id}"},
+        ).json()
+
     def audit(
         self,
         token: str,
