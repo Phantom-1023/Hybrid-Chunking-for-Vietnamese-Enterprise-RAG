@@ -202,3 +202,46 @@ def test_restricted_document_requires_explicit_grant_and_manager_is_scoped(tmp_p
         finance_headers = _auth(finance_login.json()["access_token"])
         assert client.get("/api/documents", headers=finance_headers).json() == []
         assert client.get(f"/api/documents/{document_id}", headers=finance_headers).status_code == 404
+
+
+def test_manager_cannot_reclassify_readable_organization_document(tmp_path):
+    app = create_app(
+        database_path=tmp_path / "webapp.db",
+        token_secret="test-secret-that-is-long-and-local-only",
+    )
+    with TestClient(app) as client:
+        admin_headers, hr_id, _ = _setup(client)
+        organization_document = client.post(
+            "/api/documents",
+            headers=admin_headers,
+            json={
+                "title": "Thông báo toàn công ty",
+                "content": "Nội dung toàn tổ chức chỉ admin được phép quản trị.",
+                "access_scope": "organization",
+                "department_id": None,
+            },
+        ).json()
+        manager_login = client.post(
+            "/api/login",
+            json={
+                "email": "manager@example.test",
+                "password": "ManagerPassphrase123!",
+            },
+        )
+        manager_headers = _auth(manager_login.json()["access_token"])
+
+        assert client.get(
+            f"/api/documents/{organization_document['id']}", headers=manager_headers
+        ).status_code == 200
+        forbidden = client.patch(
+            f"/api/documents/{organization_document['id']}",
+            headers=manager_headers,
+            json={
+                "title": "Chiếm quyền tài liệu",
+                "access_scope": "department",
+                "department_id": hr_id,
+                "label_ids": [],
+                "grant_user_ids": [],
+            },
+        )
+        assert forbidden.status_code == 403

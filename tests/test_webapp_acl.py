@@ -14,6 +14,7 @@ def test_self_service_registration_profile_and_password_change(tmp_path):
         allow_public_registration=True,
     )
     with TestClient(app) as client:
+        assert client.get("/api/setup/status").json()["public_registration_enabled"] is True
         registered = client.post(
             "/api/register",
             json={
@@ -44,6 +45,25 @@ def test_self_service_registration_profile_and_password_change(tmp_path):
         assert renewed_login.status_code == 200
 
 
+def test_public_registration_is_disabled_by_default(tmp_path):
+    app = create_app(
+        database_path=tmp_path / "webapp.db",
+        token_secret="test-secret-that-is-long-and-local-only",
+    )
+    with TestClient(app) as client:
+        assert client.get("/api/setup/status").json()["public_registration_enabled"] is False
+        response = client.post(
+            "/api/register",
+            json={
+                "email": "member@example.test",
+                "display_name": "Member One",
+                "password": "MemberPassphrase123!",
+            },
+        )
+        assert response.status_code == 403
+        assert "quản trị viên" in response.json()["detail"]
+
+
 def test_admin_user_directory_is_paginated_and_supports_safe_account_actions(tmp_path):
     app = create_app(database_path=tmp_path / "webapp.db", token_secret="test-secret-that-is-long-and-local-only")
     with TestClient(app) as client:
@@ -68,6 +88,216 @@ def test_admin_user_directory_is_paginated_and_supports_safe_account_actions(tmp
         assert detail.status_code == 200
         assert "password_hash" not in detail.json()["user"]
         assert client.delete(f"/api/users/{target['id']}", headers=headers).status_code == 204
+
+
+def test_user_assignment_update_revokes_old_department_manager_access(tmp_path):
+    app = create_app(
+        database_path=tmp_path / "webapp.db",
+        token_secret="test-secret-that-is-long-and-local-only",
+    )
+    with TestClient(app) as client:
+        setup = client.post(
+            "/api/setup",
+            json={
+                "email": "admin@example.test",
+                "display_name": "Admin",
+                "password": "AdminPassphrase123!",
+            },
+        )
+        admin_headers = _auth(setup.json()["access_token"])
+        hr = client.post(
+            "/api/departments", headers=admin_headers, json={"name": "Nhân sự"}
+        ).json()
+        finance = client.post(
+            "/api/departments", headers=admin_headers, json={"name": "Tài chính"}
+        ).json()
+        manager = client.post(
+            "/api/users",
+            headers=admin_headers,
+            json={
+                "email": "manager@example.test",
+                "display_name": "Manager",
+                "password": "ManagerPassphrase123!",
+                "role": "manager",
+                "department_id": hr["id"],
+            },
+        ).json()
+        login = client.post(
+            "/api/login",
+            json={
+                "email": "manager@example.test",
+                "password": "ManagerPassphrase123!",
+            },
+        )
+        manager_headers = _auth(login.json()["access_token"])
+        before = client.get("/api/me", headers=manager_headers).json()
+        assert before["managed_department_ids"] == [hr["id"]]
+
+        moved = client.patch(
+            f"/api/users/{manager['id']}",
+            headers=admin_headers,
+            json={"role": "member", "department_id": finance["id"]},
+        )
+        assert moved.status_code == 200, moved.text
+        member_profile = client.get("/api/me", headers=manager_headers).json()
+        assert member_profile["role"] == "member"
+        assert member_profile["department_ids"] == [finance["id"]]
+        assert member_profile["managed_department_ids"] == []
+
+        promoted = client.patch(
+            f"/api/users/{manager['id']}",
+            headers=admin_headers,
+            json={"role": "manager"},
+        )
+        assert promoted.status_code == 200, promoted.text
+        manager_profile = client.get("/api/me", headers=manager_headers).json()
+        assert manager_profile["managed_department_ids"] == [finance["id"]]
+        assert client.post(
+            "/api/documents",
+            headers=manager_headers,
+            json={
+                "title": "Sai phòng",
+                "content": "Không còn quyền tạo tài liệu cho phòng nhân sự.",
+                "access_scope": "department",
+                "department_id": hr["id"],
+            },
+        ).status_code == 403
+        assert client.post(
+            "/api/documents",
+            headers=manager_headers,
+            json={
+                "title": "Đúng phòng",
+                "content": "Quản lý được tạo tài liệu cho phòng tài chính.",
+                "access_scope": "department",
+                "department_id": finance["id"],
+            },
+        ).status_code == 201
+
+
+def test_manager_assignment_requires_department(tmp_path):
+    app = create_app(
+        database_path=tmp_path / "webapp.db",
+        token_secret="test-secret-that-is-long-and-local-only",
+    )
+    with TestClient(app) as client:
+        setup = client.post(
+            "/api/setup",
+            json={
+                "email": "admin@example.test",
+                "display_name": "Admin",
+                "password": "AdminPassphrase123!",
+            },
+        )
+        headers = _auth(setup.json()["access_token"])
+        response = client.post(
+            "/api/users",
+            headers=headers,
+            json={
+                "email": "manager@example.test",
+                "display_name": "Manager",
+                "password": "ManagerPassphrase123!",
+                "role": "manager",
+                "department_id": None,
+            },
+        )
+        assert response.status_code == 422
+
+
+class _AssignmentBackend:
+    def __init__(self):
+        self.profile = {
+            "id": "user-1",
+            "email": "manager@example.test",
+            "display_name": "Manager",
+            "role": "manager",
+            "department_id": "department-hr",
+            "is_active": True,
+        }
+        self.memberships = [
+            {"department_id": "department-hr", "user_id": "user-1", "role": "manager"}
+        ]
+        self.calls = []
+
+    def initialize(self):
+        pass
+
+    def close(self):
+        pass
+
+    def user_from_token(self, token):
+        assert token == "admin-token"
+        return {
+            "id": "admin-1",
+            "email": "admin@example.test",
+            "display_name": "Admin",
+            "role": "admin",
+            "department_id": None,
+            "department_ids": [],
+            "managed_department_ids": [],
+            "_access_token": token,
+        }
+
+    def list_users(self, token):
+        return [dict(self.profile)]
+
+    def user_memberships(self, token, user_id):
+        return [dict(row) for row in self.memberships]
+
+    def delete_membership(self, token, department_id, user_id):
+        self.calls.append(("delete_membership", department_id))
+        self.memberships = [
+            row
+            for row in self.memberships
+            if str(row["department_id"]) != str(department_id)
+        ]
+
+    def update_membership(self, token, department_id, user_id, role):
+        self.calls.append(("update_membership", department_id, role))
+        for row in self.memberships:
+            if str(row["department_id"]) == str(department_id):
+                row["role"] = role
+
+    def add_membership(self, token, department_id, user_id, role):
+        self.calls.append(("add_membership", department_id, role))
+        self.memberships.append(
+            {"department_id": department_id, "user_id": user_id, "role": role}
+        )
+
+    def update_user(self, user_id, updates):
+        self.calls.append(("update_user", updates.get("department_id"), updates.get("role")))
+        self.profile.update(updates)
+        return dict(self.profile)
+
+    def audit(self, *args, **kwargs):
+        pass
+
+
+def test_supabase_assignment_revokes_old_membership_before_profile_update(tmp_path):
+    backend = _AssignmentBackend()
+    app = create_app(
+        database_path=tmp_path / "unused.db",
+        supabase_backend=backend,
+    )
+    with TestClient(app) as client:
+        response = client.patch(
+            "/api/users/user-1",
+            headers=_auth("admin-token"),
+            json={"role": "member", "department_id": "department-finance"},
+        )
+
+    assert response.status_code == 200, response.text
+    assert backend.calls == [
+        ("delete_membership", "department-hr"),
+        ("update_user", "department-finance", "member"),
+        ("add_membership", "department-finance", "member"),
+    ]
+    assert backend.memberships == [
+        {
+            "department_id": "department-finance",
+            "user_id": "user-1",
+            "role": "member",
+        }
+    ]
 
 
 class _FakeReranker:
