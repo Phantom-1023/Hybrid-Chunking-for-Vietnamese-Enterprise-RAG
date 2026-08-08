@@ -2,6 +2,7 @@
 
 from contextlib import asynccontextmanager
 import hashlib
+import logging
 import os
 from pathlib import Path
 import secrets
@@ -13,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.bm25_retriever import BM25Retriever, LexicalDocument
+from src.hybrid_retriever import HybridRetriever
 from src.reranker import CrossEncoderReranker
 from webapp.db import Database
 from webapp.grounded_llm import GroundedLLM
@@ -23,6 +25,7 @@ from webapp.supabase_backend import SupabaseBackend, SupabaseBackendError
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+LOGGER = logging.getLogger(__name__)
 
 
 class SetupRequest(BaseModel):
@@ -116,6 +119,8 @@ def create_app(
     token_secret: str | None = None,
     reranker=None,
     enable_reranker: bool | None = None,
+    hybrid_retriever=None,
+    enable_hybrid_retrieval: bool | None = None,
     supabase_backend: SupabaseBackend | None = None,
     grounded_llm: GroundedLLM | None = None,
 ) -> FastAPI:
@@ -143,6 +148,12 @@ def create_app(
             expected_sha256=expected_checksum,
             device=os.getenv("RERANKER_DEVICE", "cpu"),
         )
+    should_enable_hybrid = (
+        enable_hybrid_retrieval
+        if enable_hybrid_retrieval is not None
+        else os.getenv("WEBAPP_ENABLE_HYBRID_RETRIEVAL", "false").lower() == "true"
+    )
+    configured_hybrid_retriever = hybrid_retriever
     answerer = grounded_llm or GroundedLLM()
     upload_root = Path(os.getenv("WEBAPP_UPLOAD_DIR", str(ROOT / "data" / "webapp_uploads")))
 
@@ -169,6 +180,7 @@ def create_app(
     app.state.supabase_backend = supabase_backend
     app.state.token_secret = secret
     app.state.upload_root = upload_root
+    app.state.hybrid_enabled = should_enable_hybrid
 
     @app.exception_handler(SupabaseBackendError)
     async def supabase_error_handler(
@@ -218,6 +230,16 @@ def create_app(
         return department_id is not None and str(department_id) in {
             str(value) for value in user.get("managed_department_ids", [])
         }
+
+    def get_hybrid_retriever():
+        nonlocal configured_hybrid_retriever
+        if configured_hybrid_retriever is None:
+            if reranker is None:
+                raise RuntimeError(
+                    "Hybrid retrieval requires the verified fine-tuned reranker"
+                )
+            configured_hybrid_retriever = HybridRetriever(reranker=reranker)
+        return configured_hybrid_retriever
 
     def require_department_manager(user: dict, department_id: int | str | None) -> None:
         if not can_manage_department(user, department_id):
@@ -1067,21 +1089,48 @@ def create_app(
             payload.question,
             top_k=min(20, len(documents_for_ranker)),
         )
-        if reranker is not None:
-            evidence = reranker.rerank(
-                payload.question,
-                [item.document for item in ranked],
-                top_k=payload.top_k,
-            )
-            evidence_documents = [
-                (item.item, item.score) for item in evidence
-            ]
-            method = "bm25_acl_first_then_fine_tuned_cross_encoder"
-        else:
-            evidence_documents = [
-                (item.document, item.score) for item in ranked[: payload.top_k]
-            ]
-            method = "bm25_acl_first"
+        hybrid_fallback = False
+        evidence_documents = None
+        method = "bm25_acl_first"
+        if should_enable_hybrid:
+            try:
+                hybrid_results = get_hybrid_retriever().retrieve(
+                    payload.question,
+                    documents_for_ranker,
+                    top_k=payload.top_k,
+                    bm25_results=ranked,
+                )
+                if hybrid_results:
+                    evidence_documents = [
+                        (item.document, item.score) for item in hybrid_results
+                    ]
+                    method = hybrid_results[0].method
+                else:
+                    hybrid_fallback = True
+            except Exception as exc:
+                # Hybrid is experimental; it must never make BM25 unavailable.
+                LOGGER.warning(
+                    "Hybrid retrieval unavailable; falling back to BM25 (%s)",
+                    type(exc).__name__,
+                )
+                hybrid_fallback = True
+
+        if evidence_documents is None:
+            if reranker is not None:
+                evidence = reranker.rerank(
+                    payload.question,
+                    [item.document for item in ranked],
+                    top_k=payload.top_k,
+                )
+                evidence_documents = [
+                    (item.item, item.score) for item in evidence
+                ]
+                method = "bm25_acl_first_then_fine_tuned_cross_encoder"
+            else:
+                evidence_documents = [
+                    (item.document, item.score) for item in ranked[: payload.top_k]
+                ]
+                method = "bm25_acl_first"
         citations = [
             {
                 "document_id": document.document_id,
@@ -1114,16 +1163,24 @@ def create_app(
                 outcome="allowed",
                 detail=f"question={payload.question[:300]};acl_candidates={len(allowed_chunks)};evidence={len(citations)}",
             )
+        retrieval_payload = {
+            "acl_candidates": len(allowed_chunks),
+            "method": method,
+            "candidate_k": min(20, len(allowed_chunks)),
+            "evidence_k": len(citations),
+            "generator": "deepseek_grounded" if answerer.configured else "evidence_only",
+        }
+        if should_enable_hybrid:
+            retrieval_payload.update(
+                {
+                    "hybrid_enabled": True,
+                    "hybrid_fallback": hybrid_fallback,
+                }
+            )
         return {
             "answer": answerer.answer(question=payload.question, citations=citations),
             "citations": citations,
-            "retrieval": {
-                "acl_candidates": len(allowed_chunks),
-                "method": method,
-                "candidate_k": min(20, len(allowed_chunks)),
-                "evidence_k": len(citations),
-                "generator": "deepseek_grounded" if answerer.configured else "evidence_only",
-            },
+            "retrieval": retrieval_payload,
         }
 
     @app.get("/api/audit")
