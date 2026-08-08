@@ -48,6 +48,33 @@ def _setup(client: TestClient) -> tuple[dict[str, str], int, int]:
     return headers, hr["id"], finance["id"]
 
 
+def test_public_registration_is_disabled_by_default_and_explicit_when_enabled(tmp_path):
+    disabled = create_app(
+        database_path=tmp_path / "disabled.db",
+        token_secret="test-secret-that-is-long-and-local-only",
+    )
+    with TestClient(disabled) as client:
+        assert client.get("/api/setup/status").json()["public_registration_enabled"] is False
+        response = client.post(
+            "/api/register",
+            json={"email": "new@example.test", "display_name": "New User", "password": "Passphrase123!"},
+        )
+        assert response.status_code == 403
+
+    enabled = create_app(
+        database_path=tmp_path / "enabled.db",
+        token_secret="test-secret-that-is-long-and-local-only",
+        allow_public_registration=True,
+    )
+    with TestClient(enabled) as client:
+        assert client.get("/api/setup/status").json()["public_registration_enabled"] is True
+        response = client.post(
+            "/api/register",
+            json={"email": "new@example.test", "display_name": "New User", "password": "Passphrase123!"},
+        )
+        assert response.status_code == 201
+
+
 def test_manager_uploads_csv_and_citation_opens_original_file(tmp_path, monkeypatch):
     monkeypatch.setenv("WEBAPP_UPLOAD_DIR", str(tmp_path / "uploads"))
     app = create_app(

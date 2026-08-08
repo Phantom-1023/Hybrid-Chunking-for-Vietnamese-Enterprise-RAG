@@ -121,6 +121,7 @@ def create_app(
     enable_reranker: bool | None = None,
     hybrid_retriever=None,
     enable_hybrid_retrieval: bool | None = None,
+    allow_public_registration: bool | None = None,
     supabase_backend: SupabaseBackend | None = None,
     grounded_llm: GroundedLLM | None = None,
 ) -> FastAPI:
@@ -138,8 +139,18 @@ def create_app(
         else os.getenv("WEBAPP_ENABLE_RERANKER", "false").lower() == "true"
     )
     if reranker is None and should_load_reranker:
-        checkpoint_path = ROOT / "checkpoints" / "reranker" / "full" / "best"
-        checksum_path = ROOT / "artifacts" / "reranker" / "full_checkpoint.sha256"
+        checkpoint_path = Path(
+            os.getenv(
+                "WEBAPP_RERANKER_CHECKPOINT_PATH",
+                str(ROOT / "checkpoints" / "reranker" / "full" / "best"),
+            )
+        )
+        checksum_path = Path(
+            os.getenv(
+                "WEBAPP_RERANKER_CHECKSUM_PATH",
+                str(ROOT / "artifacts" / "reranker" / "full_checkpoint.sha256"),
+            )
+        )
         if not checkpoint_path.is_dir() or not checksum_path.is_file():
             raise RuntimeError("Fine-tuned reranker is enabled but checkpoint is missing")
         expected_checksum = checksum_path.read_text(encoding="utf-8").split()[0]
@@ -152,6 +163,11 @@ def create_app(
         enable_hybrid_retrieval
         if enable_hybrid_retrieval is not None
         else os.getenv("WEBAPP_ENABLE_HYBRID_RETRIEVAL", "false").lower() == "true"
+    )
+    public_registration_enabled = (
+        allow_public_registration
+        if allow_public_registration is not None
+        else os.getenv("WEBAPP_ALLOW_PUBLIC_REGISTRATION", "false").lower() == "true"
     )
     configured_hybrid_retriever = hybrid_retriever
     answerer = grounded_llm or GroundedLLM()
@@ -181,6 +197,9 @@ def create_app(
     app.state.token_secret = secret
     app.state.upload_root = upload_root
     app.state.hybrid_enabled = should_enable_hybrid
+    app.state.public_registration_enabled = public_registration_enabled
+    app.state.reranker_enabled = reranker is not None
+    app.state.reranker_checkpoint_sha256 = getattr(reranker, "checkpoint_sha256", "")
 
     @app.exception_handler(SupabaseBackendError)
     async def supabase_error_handler(
@@ -277,15 +296,28 @@ def create_app(
         return {
             "status": "ok",
             "deployment_claim": "demo_only",
+            "retrieval": {
+                "hybrid_enabled": should_enable_hybrid,
+                "reranker_enabled": reranker is not None,
+                "reranker_checkpoint_verified": bool(
+                    getattr(reranker, "checkpoint_sha256", "")
+                ),
+            },
             **details,
         }
 
     @app.get("/api/setup/status")
     def setup_status():
         if supabase_backend is not None:
-            return supabase_backend.setup_status()
+            return {
+                **supabase_backend.setup_status(),
+                "public_registration_enabled": public_registration_enabled,
+            }
         count = db.query_one("SELECT COUNT(*) AS count FROM users")
-        return {"needs_setup": int(count["count"]) == 0}
+        return {
+            "needs_setup": int(count["count"]) == 0,
+            "public_registration_enabled": public_registration_enabled,
+        }
 
     @app.post("/api/setup", status_code=status.HTTP_201_CREATED)
     def setup(
@@ -354,6 +386,11 @@ def create_app(
 
     @app.post("/api/register", status_code=201)
     def register(payload: RegisterRequest):
+        if not public_registration_enabled:
+            raise HTTPException(
+                status_code=403,
+                detail="Tài khoản được tạo bởi quản trị viên hoặc trưởng phòng.",
+            )
         if supabase_backend is not None:
             user_id = supabase_backend.create_user(email=payload.email.lower().strip(), display_name=payload.display_name, password=payload.password, role="member", department_id=None)
             return {"id": user_id}

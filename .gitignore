@@ -6,6 +6,7 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.release-venv/
 
 node_modules/
 

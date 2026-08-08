@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="420" viewBox="0 0 860 420" role="img" aria-labelledby="title desc">
+  <title id="title">So sánh reranker trên locked test set</title>
+  <desc id="desc">Biểu đồ Hit at 1 và MRR của no rerank, MMR, base cross encoder và fine tuned cross encoder trên 114 query.</desc>
+  <rect width="860" height="420" fill="#ffffff"/>
+  <text x="48" y="38" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#16201d">Locked test: Fine-tuned Cross-Encoder cải thiện xếp hạng</text>
+  <text x="48" y="62" font-family="Arial, sans-serif" font-size="13" fill="#69736f">114 query · cùng candidate pool top-20 · cao hơn là tốt hơn</text>
+  <g font-family="Arial, sans-serif" font-size="12" fill="#69736f">
+    <text x="48" y="112">0.0</text><text x="48" y="172">0.25</text><text x="48" y="232">0.50</text><text x="48" y="292">0.75</text><text x="48" y="352">1.0</text>
+  </g>
+  <g stroke="#e6ebe8" stroke-width="1">
+    <line x1="88" y1="108" x2="830" y2="108"/><line x1="88" y1="168" x2="830" y2="168"/><line x1="88" y1="228" x2="830" y2="228"/><line x1="88" y1="288" x2="830" y2="288"/><line x1="88" y1="348" x2="830" y2="348"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="12" fill="#16201d">
+    <text x="126" y="382">No rerank</text><text x="306" y="382">MMR</text><text x="466" y="382">Base CE</text><text x="650" y="382">Fine-tuned CE</text>
+  </g>
+  <g>
+    <rect x="120" y="245" width="26" height="103" rx="3" fill="#90a49d"/><rect x="151" y="187" width="26" height="161" rx="3" fill="#176b5b"/>
+    <rect x="286" y="203" width="26" height="145" rx="3" fill="#90a49d"/><rect x="317" y="181" width="26" height="167" rx="3" fill="#176b5b"/>
+    <rect x="446" y="197" width="26" height="151" rx="3" fill="#90a49d"/><rect x="477" y="196" width="26" height="152" rx="3" fill="#176b5b"/>
+    <rect x="630" y="125" width="26" height="223" rx="3" fill="#90a49d"/><rect x="661" y="121" width="26" height="227" rx="3" fill="#176b5b"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#16201d">
+    <text x="116" y="239">.430</text><text x="147" y="181">.669</text><text x="282" y="197">.605</text><text x="313" y="175">.699</text><text x="442" y="191">.632</text><text x="473" y="190">.779</text><text x="626" y="119">.930</text><text x="657" y="115">.945</text>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="12"><rect x="698" y="76" width="12" height="12" fill="#90a49d"/><text x="716" y="87" fill="#69736f">Hit@1</text><rect x="770" y="76" width="12" height="12" fill="#176b5b"/><text x="788" y="87" fill="#69736f">MRR</text></g>
+</svg>

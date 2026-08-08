@@ -49,7 +49,8 @@ conversation/state theo user khi logout hoặc đổi tài khoản.
 .\.venv\Scripts\python.exe -m pip install -r requirements-web.txt
 $env:WEBAPP_TOKEN_SECRET = "replace-with-a-random-local-secret"
 $env:WEBAPP_ENABLE_RERANKER = "true"
-$env:RERANKER_CHECKPOINT_PATH = "path-to-local-checkpoint"
+$env:WEBAPP_RERANKER_CHECKPOINT_PATH = "path-to-local-checkpoint"
+$env:WEBAPP_RERANKER_CHECKSUM_PATH = "artifacts/reranker/full_checkpoint.sha256"
 .\.venv\Scripts\python.exe -m uvicorn webapp.app:app --host 127.0.0.1 --port 8000
 ```
 

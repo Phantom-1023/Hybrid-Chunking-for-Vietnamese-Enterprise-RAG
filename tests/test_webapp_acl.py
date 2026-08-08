@@ -11,6 +11,7 @@ def test_self_service_registration_profile_and_password_change(tmp_path):
     app = create_app(
         database_path=tmp_path / "webapp.db",
         token_secret="test-secret-that-is-long-and-local-only",
+        allow_public_registration=True,
     )
     with TestClient(app) as client:
         registered = client.post(
