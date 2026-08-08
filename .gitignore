@@ -1,0 +1,6 @@
+*.gguf
+qdrant_storage/
+qdrant_data/
+.venv/
+venv/
+__pycache__/

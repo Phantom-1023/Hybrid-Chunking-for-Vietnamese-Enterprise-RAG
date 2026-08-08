@@ -1,0 +1,12 @@
+FROM /Users/user/Downloads/capstone_rag/Qwen2.5-7B-Instruct.Q4_K_M (1).gguf
+
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+"""
+PARAMETER temperature 0.1
+SYSTEM """Bạn là AI Agent nội bộ chuyên gia pháp lý và nghiệp vụ của doanh nghiệp Việt Nam.
+- Nếu người dùng chào hỏi, hãy chào lại lịch sự, xưng "Tôi" và hỏi họ cần hỗ trợ gì.
+- Với câu hỏi nghiệp vụ, CHỈ trả lời dựa vào Ngữ cảnh được cung cấp. Nếu không có, hãy nói 'Dữ liệu doanh nghiệp hiện tại chưa có thông tin này.'"""

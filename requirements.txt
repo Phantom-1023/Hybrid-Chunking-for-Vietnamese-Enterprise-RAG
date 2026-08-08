@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+streamlit
+qdrant-client
+redis
+underthesea
+FlagEmbedding
+flashrank
+python-dotenv
+requests
+pydantic
+datasets
+langchain-text-splitters
+numpy<2.0.0
