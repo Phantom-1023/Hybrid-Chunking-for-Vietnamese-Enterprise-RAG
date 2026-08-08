@@ -204,3 +204,31 @@ def test_document_write_uses_authenticated_authorization_rpc():
     assert document_id == "document-1"
     assert captured[0].url.path == "/rest/v1/rpc/create_authorized_document"
     assert captured[0].headers["authorization"] == "Bearer user-access-token"
+
+
+def test_user_memberships_use_authenticated_admin_rls_context():
+    captured = []
+
+    def handler(request: httpx.Request):
+        captured.append(request)
+        return _json_response(
+            [
+                {
+                    "department_id": "department-hr",
+                    "user_id": "user-1",
+                    "role": "manager",
+                }
+            ]
+        )
+
+    backend = SupabaseBackend(
+        "https://project.example.test",
+        "anon-test-key",
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    memberships = backend.user_memberships("admin-access-token", "user-1")
+
+    assert memberships[0]["department_id"] == "department-hr"
+    assert captured[0].url.path == "/rest/v1/department_memberships"
+    assert captured[0].url.params["user_id"] == "eq.user-1"
+    assert captured[0].headers["authorization"] == "Bearer admin-access-token"

@@ -286,6 +286,18 @@ class SupabaseBackend:
             member.update({"display_name": profile.get("display_name"), "email": profile.get("email"), "is_active": profile.get("is_active", True)})
         return members
 
+    def user_memberships(self, token: str, user_id: str) -> list[dict[str, Any]]:
+        """Return one user's memberships using the authenticated admin's RLS context."""
+        return self._request(
+            "GET",
+            "/rest/v1/department_memberships",
+            token=token,
+            params={
+                "select": "department_id,user_id,role,created_at",
+                "user_id": f"eq.{user_id}",
+            },
+        ).json()
+
     def add_membership(self, token: str, department_id: str, user_id: str, role: str) -> None:
         self._request(
             "POST",

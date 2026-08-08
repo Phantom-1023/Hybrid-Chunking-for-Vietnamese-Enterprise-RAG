@@ -3,9 +3,20 @@ Test cases cho Document Loader Module
 """
 
 import pytest
-from pathlib import Path
 from src.document_loader import DocumentLoader, DocumentManager, Document
 from src.text_processor import TextProcessor
+
+
+@pytest.fixture
+def sample_documents_dir(tmp_path):
+    """Create deterministic document fixtures outside production data paths."""
+    directory = tmp_path / "sample_documents"
+    directory.mkdir()
+    (directory / "sample_policy.txt").write_text(
+        "Chính sách nghỉ phép: nhân viên có 12 ngày phép mỗi năm.",
+        encoding="utf-8",
+    )
+    return directory
 
 
 class TestDocumentLoader:
@@ -21,39 +32,35 @@ class TestDocumentLoader:
         """Tạo TextProcessor instance"""
         return TextProcessor()
     
-    def test_load_text_file(self, loader):
+    def test_load_text_file(self, loader, sample_documents_dir):
         """Test tải file text"""
-        file_path = "data/sample_documents/sample_policy.txt"
-        doc = loader.load_document(file_path)
+        file_path = sample_documents_dir / "sample_policy.txt"
+        doc = loader.load_document(str(file_path))
         
         assert doc is not None
         assert doc.filename == "sample_policy.txt"
         assert len(doc.content) > 0
         assert doc.file_type == "Plain Text File"
     
-    def test_load_nonexistent_file(self, loader):
+    def test_load_nonexistent_file(self, loader, sample_documents_dir):
         """Test tải file không tồn tại"""
-        file_path = "data/sample_documents/nonexistent.txt"
-        doc = loader.load_document(file_path)
+        file_path = sample_documents_dir / "nonexistent.txt"
+        doc = loader.load_document(str(file_path))
         
         assert doc is None
     
-    def test_load_unsupported_format(self, loader):
+    def test_load_unsupported_format(self, loader, sample_documents_dir):
         """Test tải định dạng không được hỗ trợ"""
-        # Tạo file với định dạng không hỗ trợ
-        test_file = Path("data/sample_documents/test.xyz")
-        test_file.write_text("test content")
+        test_file = sample_documents_dir / "test.xyz"
+        test_file.write_text("test content", encoding="utf-8")
         
         doc = loader.load_document(str(test_file))
         assert doc is None
         
-        # Dọn dẹp
-        test_file.unlink()
-    
-    def test_document_metadata(self, loader):
+    def test_document_metadata(self, loader, sample_documents_dir):
         """Test metadata của Document"""
-        file_path = "data/sample_documents/sample_policy.txt"
-        doc = loader.load_document(file_path)
+        file_path = sample_documents_dir / "sample_policy.txt"
+        doc = loader.load_document(str(file_path))
         
         assert doc is not None
         assert doc.metadata['extension'] == '.txt'
@@ -61,9 +68,9 @@ class TestDocumentLoader:
         assert doc.metadata['character_count'] > 0
         assert doc.metadata['word_count'] > 0
     
-    def test_load_all_documents(self, loader):
+    def test_load_all_documents(self, loader, sample_documents_dir):
         """Test tải tất cả tài liệu từ thư mục"""
-        docs = loader.load_all_documents("data/sample_documents")
+        docs = loader.load_all_documents(str(sample_documents_dir))
         
         assert len(docs) > 0
         assert all(isinstance(doc, Document) for doc in docs)
@@ -142,32 +149,32 @@ class TestDocumentManager:
         """Tạo DocumentManager instance"""
         return DocumentManager()
     
-    def test_add_document(self, manager):
+    def test_add_document(self, manager, sample_documents_dir):
         """Test thêm một tài liệu"""
-        file_path = "data/sample_documents/sample_policy.txt"
-        result = manager.add_document(file_path)
+        file_path = sample_documents_dir / "sample_policy.txt"
+        result = manager.add_document(str(file_path))
         
         assert result is True
         assert len(manager.get_all_documents()) > 0
     
-    def test_add_documents_from_directory(self, manager):
+    def test_add_documents_from_directory(self, manager, sample_documents_dir):
         """Test thêm tài liệu từ thư mục"""
-        count = manager.add_documents_from_directory("data/sample_documents")
+        count = manager.add_documents_from_directory(str(sample_documents_dir))
         
         assert count > 0
         assert len(manager.get_all_documents()) == count
     
-    def test_get_document_by_filename(self, manager):
+    def test_get_document_by_filename(self, manager, sample_documents_dir):
         """Test tìm tài liệu theo tên"""
-        manager.add_documents_from_directory("data/sample_documents")
+        manager.add_documents_from_directory(str(sample_documents_dir))
         doc = manager.get_document_by_filename("sample_policy.txt")
         
         assert doc is not None
         assert doc.filename == "sample_policy.txt"
     
-    def test_get_statistics(self, manager):
+    def test_get_statistics(self, manager, sample_documents_dir):
         """Test lấy thống kê"""
-        manager.add_documents_from_directory("data/sample_documents")
+        manager.add_documents_from_directory(str(sample_documents_dir))
         stats = manager.get_statistics()
         
         assert 'total_documents' in stats
@@ -176,9 +183,9 @@ class TestDocumentManager:
         assert 'total_words' in stats
         assert 'file_types' in stats
     
-    def test_clear_documents(self, manager):
+    def test_clear_documents(self, manager, sample_documents_dir):
         """Test xóa tất cả tài liệu"""
-        manager.add_documents_from_directory("data/sample_documents")
+        manager.add_documents_from_directory(str(sample_documents_dir))
         assert len(manager.get_all_documents()) > 0
         
         manager.clear_documents()

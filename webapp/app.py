@@ -121,6 +121,7 @@ def create_app(
     enable_reranker: bool | None = None,
     hybrid_retriever=None,
     enable_hybrid_retrieval: bool | None = None,
+    allow_public_registration: bool | None = None,
     supabase_backend: SupabaseBackend | None = None,
     grounded_llm: GroundedLLM | None = None,
 ) -> FastAPI:
@@ -152,6 +153,11 @@ def create_app(
         enable_hybrid_retrieval
         if enable_hybrid_retrieval is not None
         else os.getenv("WEBAPP_ENABLE_HYBRID_RETRIEVAL", "false").lower() == "true"
+    )
+    should_allow_public_registration = (
+        allow_public_registration
+        if allow_public_registration is not None
+        else os.getenv("WEBAPP_ALLOW_PUBLIC_REGISTRATION", "false").lower() == "true"
     )
     configured_hybrid_retriever = hybrid_retriever
     answerer = grounded_llm or GroundedLLM()
@@ -264,6 +270,17 @@ def create_app(
         require_department_manager(user, department_id)
         return department_id
 
+    def require_document_editor(user: dict, document: dict) -> None:
+        """Require write authority on the source document before changing its ACL."""
+        if user["role"] == "admin" or str(document.get("owner_id")) == str(user["id"]):
+            return
+        if (
+            document.get("access_scope") == "department"
+            and can_manage_department(user, document.get("department_id"))
+        ):
+            return
+        raise HTTPException(status_code=403, detail="Bạn không có quyền sửa tài liệu này")
+
     @app.get("/api/health")
     def health():
         details = (
@@ -283,9 +300,14 @@ def create_app(
     @app.get("/api/setup/status")
     def setup_status():
         if supabase_backend is not None:
-            return supabase_backend.setup_status()
-        count = db.query_one("SELECT COUNT(*) AS count FROM users")
-        return {"needs_setup": int(count["count"]) == 0}
+            result = supabase_backend.setup_status()
+        else:
+            count = db.query_one("SELECT COUNT(*) AS count FROM users")
+            result = {"needs_setup": int(count["count"]) == 0}
+        return {
+            **result,
+            "public_registration_enabled": should_allow_public_registration,
+        }
 
     @app.post("/api/setup", status_code=status.HTTP_201_CREATED)
     def setup(
@@ -354,6 +376,11 @@ def create_app(
 
     @app.post("/api/register", status_code=201)
     def register(payload: RegisterRequest):
+        if not should_allow_public_registration:
+            raise HTTPException(
+                status_code=403,
+                detail="Đăng ký công khai đã tắt; liên hệ quản trị viên để được cấp tài khoản",
+            )
         if supabase_backend is not None:
             user_id = supabase_backend.create_user(email=payload.email.lower().strip(), display_name=payload.display_name, password=payload.password, role="member", department_id=None)
             return {"id": user_id}
@@ -640,8 +667,11 @@ def create_app(
         payload: UserCreate,
         actor: Annotated[dict, Depends(current_user)],
     ):
+        department_id = None if payload.role == "admin" else payload.department_id
+        if payload.role == "manager" and department_id is None:
+            raise HTTPException(status_code=422, detail="Quản lý cần thuộc một phòng ban")
         if actor["role"] != "admin":
-            require_department_manager(actor, payload.department_id)
+            require_department_manager(actor, department_id)
             if payload.role != "member":
                 raise HTTPException(status_code=403, detail="Trưởng phòng chỉ có thể tạo thành viên")
         membership_role = "manager" if actor["role"] == "admin" and payload.role == "manager" else "member"
@@ -651,11 +681,11 @@ def create_app(
                 display_name=payload.display_name,
                 password=payload.password,
                 role=payload.role,
-                department_id=payload.department_id,
+                department_id=department_id,
             )
-            if payload.department_id is not None:
+            if department_id is not None:
                 supabase_backend.add_membership(
-                    actor["_access_token"], str(payload.department_id), user_id, membership_role
+                    actor["_access_token"], str(department_id), user_id, membership_role
                 )
             supabase_backend.audit(
                 actor["_access_token"],
@@ -678,15 +708,15 @@ def create_app(
                     payload.display_name,
                     hash_password(payload.password),
                     payload.role,
-                    payload.department_id,
+                    department_id,
                 ),
             )
         except Exception as exc:
             raise HTTPException(status_code=409, detail="User could not be created") from exc
-        if payload.department_id is not None:
+        if department_id is not None:
             db.execute(
                 "INSERT INTO department_memberships (department_id, user_id, role) VALUES (?, ?, ?)",
-                (payload.department_id, user_id, membership_role),
+                (department_id, user_id, membership_role),
             )
         db.audit(
             user_id=actor["id"],
@@ -709,17 +739,116 @@ def create_app(
         if str(user_id) == str(admin["id"]) and updates.get("is_active") is False:
             raise HTTPException(status_code=409, detail="Không thể khóa tài khoản admin đang đăng nhập")
         if supabase_backend is not None:
+            current_rows = [
+                row
+                for row in supabase_backend.list_users(admin["_access_token"])
+                if str(row["id"]) == str(user_id)
+            ]
+            if not current_rows:
+                raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+            current = current_rows[0]
+            next_role = updates.get("role", current.get("role"))
+            next_department_id = updates.get("department_id", current.get("department_id"))
+            if next_role == "admin":
+                next_department_id = None
+                if "role" in updates or "department_id" in updates:
+                    updates["department_id"] = None
+            if next_role == "manager" and next_department_id is None:
+                raise HTTPException(status_code=422, detail="Quản lý cần thuộc một phòng ban")
+            identity_changed = "role" in updates or "department_id" in updates
+            remaining_departments: set[str] = set()
+            if identity_changed:
+                memberships = supabase_backend.user_memberships(
+                    admin["_access_token"], str(user_id)
+                )
+                old_department_id = current.get("department_id")
+                remaining_departments = {str(row["department_id"]) for row in memberships}
+                for membership in memberships:
+                    membership_department = membership["department_id"]
+                    should_remove = next_role == "admin" or (
+                        old_department_id is not None
+                        and str(membership_department) == str(old_department_id)
+                        and str(old_department_id) != str(next_department_id)
+                    )
+                    if should_remove:
+                        supabase_backend.delete_membership(
+                            admin["_access_token"], str(membership_department), str(user_id)
+                        )
+                        remaining_departments.discard(str(membership_department))
+                    elif next_role == "member" and membership.get("role") == "manager":
+                        supabase_backend.update_membership(
+                            admin["_access_token"], str(membership_department), str(user_id), "member"
+                        )
             user = supabase_backend.update_user(str(user_id), updates)
+            if identity_changed:
+                if next_role != "admin" and next_department_id is not None:
+                    membership_role = "manager" if next_role == "manager" else "member"
+                    if str(next_department_id) in remaining_departments:
+                        supabase_backend.update_membership(
+                            admin["_access_token"], str(next_department_id), str(user_id), membership_role
+                        )
+                    else:
+                        supabase_backend.add_membership(
+                            admin["_access_token"], str(next_department_id), str(user_id), membership_role
+                        )
             supabase_backend.audit(admin["_access_token"], actor_id=str(admin["id"]), action="update", resource_type="user", resource_id=str(user_id), outcome="allowed")
             return user
+        current = db.query_one(
+            "SELECT id, role, department_id FROM users WHERE id = ?", (user_id,)
+        )
+        if not current:
+            raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+        next_role = updates.get("role", current["role"])
+        next_department_id = updates.get("department_id", current["department_id"])
+        if next_role == "admin":
+            next_department_id = None
+            if "role" in updates or "department_id" in updates:
+                updates["department_id"] = None
+        if next_role == "manager" and next_department_id is None:
+            raise HTTPException(status_code=422, detail="Quản lý cần thuộc một phòng ban")
         permitted = {"email", "display_name", "role", "department_id", "is_active"}
         assignments = [name for name in updates if name in permitted]
         values = [updates[name] for name in assignments]
-        if not assignments or not db.execute_count(
-            f"UPDATE users SET {', '.join(f'{name} = ?' for name in assignments)} WHERE id = ?",
-            (*values, user_id),
-        ):
-            raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+        if not assignments:
+            raise HTTPException(status_code=422, detail="Không có thay đổi hợp lệ")
+        identity_changed = "role" in updates or "department_id" in updates
+        with db.connect() as connection:
+            cursor = connection.execute(
+                f"UPDATE users SET {', '.join(f'{name} = ?' for name in assignments)} WHERE id = ?",
+                (*values, user_id),
+            )
+            if not cursor.rowcount:
+                raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+            if identity_changed:
+                old_department_id = current["department_id"]
+                if next_role == "admin":
+                    connection.execute(
+                        "DELETE FROM department_memberships WHERE user_id = ?", (user_id,)
+                    )
+                else:
+                    if next_role == "member":
+                        connection.execute(
+                            "UPDATE department_memberships SET role = 'member' WHERE user_id = ?",
+                            (user_id,),
+                        )
+                    if (
+                        old_department_id is not None
+                        and str(old_department_id) != str(next_department_id)
+                    ):
+                        connection.execute(
+                            "DELETE FROM department_memberships WHERE user_id = ? AND department_id = ?",
+                            (user_id, old_department_id),
+                        )
+                    if next_department_id is not None:
+                        membership_role = "manager" if next_role == "manager" else "member"
+                        connection.execute(
+                            """
+                            INSERT INTO department_memberships (department_id, user_id, role)
+                            VALUES (?, ?, ?)
+                            ON CONFLICT(department_id, user_id) DO UPDATE SET role = excluded.role
+                            """,
+                            (next_department_id, user_id, membership_role),
+                        )
         db.audit(user_id=admin["id"], action="update", resource_type="user", resource_id=str(user_id), outcome="allowed")
         return db.query_one(
             "SELECT id, email, display_name, role, department_id, is_active, created_at FROM users WHERE id = ?",
@@ -1016,7 +1145,8 @@ def create_app(
         payload: DocumentUpdate,
         user: Annotated[dict, Depends(current_user)],
     ):
-        _allowed_document_or_404(user, document_id)
+        source_document = _allowed_document_or_404(user, document_id)
+        require_document_editor(user, source_document)
         department_id = authorize_document_write(
             user, access_scope=payload.access_scope, department_id=payload.department_id
         )
