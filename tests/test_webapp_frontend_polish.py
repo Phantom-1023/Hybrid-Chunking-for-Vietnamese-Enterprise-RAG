@@ -7,7 +7,7 @@ def test_v1_0_5_frontend_uses_canonical_visible_version_labels():
     package = Path("src/__init__.py").read_text(encoding="utf-8")
 
     assert "semi-ver1.0.4" not in page
-    assert 'v=v1.0.5' in page
+    assert 'rev=20260813-s2-visual' in page
     assert 'version="1.0.5"' in app
     assert '__version__ = "1.0.5"' in package
 
@@ -36,4 +36,6 @@ def test_sprint2_source_drawer_and_modal_paths_have_no_native_dialogs():
     assert "lastDrawerTrigger" in script
     assert "source-drawer-title" in script
     assert "source-drawer-title" in styles
-    assert ".conversation{padding-bottom:108px}" in styles
+    assert ".conversation{padding-bottom:136px;scroll-padding-bottom:136px}" in styles
+    assert ".drawer-head .source-close" in styles
+    assert "#open-user-form,#open-department-form" in styles
