@@ -189,7 +189,7 @@ def create_app(
 
     app = FastAPI(
         title="Vietnamese Enterprise RAG",
-        version="0.1.0",
+        version="1.0.5",
         lifespan=lifespan,
     )
     app.state.db = db

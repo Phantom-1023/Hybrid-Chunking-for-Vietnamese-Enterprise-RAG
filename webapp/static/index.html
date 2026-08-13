@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>KnowledgeOS · Enterprise RAG</title>
-  <link rel="stylesheet" href="/static/styles.css?v=semi-ver1.0.4">
+  <link rel="stylesheet" href="/static/styles.css?v=v1.0.5">
 </head>
 <body>
   <div id="toast" class="toast" aria-live="polite"></div>
@@ -46,7 +46,7 @@
         <button data-view="audit" data-admin-only><i>◫</i> Nhật ký</button>
       </nav>
       <div class="sidebar-bottom">
-        <div class="account-menu hidden" id="account-menu"><button data-account-action="profile">Hồ sơ của tôi</button><button data-account-action="password">Đổi mật khẩu</button><button data-account-action="logout">Đăng xuất</button></div><button id="account-trigger" class="profile"><span id="avatar">U</span><div><strong id="profile-name">User</strong><small id="profile-meta">Member</small></div><b>⋯</b></button>
+        <div class="account-menu hidden" id="account-menu"><button data-account-action="profile">Hồ sơ của tôi</button><button data-account-action="password">Đổi mật khẩu</button><button data-account-action="logout">Đăng xuất</button></div><button id="account-trigger" class="profile" aria-expanded="false" aria-controls="account-menu"><span id="avatar">U</span><div><strong id="profile-name">User</strong><small id="profile-meta">Member</small></div><b>⋯</b></button>
       </div>
     </aside>
 
@@ -76,6 +76,7 @@
 
       <section id="view-documents" class="view">
         <div class="section-actions"><div class="searchbox">⌕ <input id="document-filter" placeholder="Tìm tài liệu"></div><button id="open-document-form" class="primary compact">+ Tải tài liệu</button></div>
+        <div id="upload-summary" class="completion-summary hidden" aria-live="polite"></div>
         <div class="panel table-panel">
           <table><thead><tr><th>Tài liệu</th><th>Phạm vi</th><th>Phòng ban</th><th>Trạng thái</th><th></th></tr></thead><tbody id="document-table"></tbody></table>
           <div id="document-empty" class="empty hidden">Chưa có tài liệu trong phạm vi của bạn.</div>
@@ -94,6 +95,7 @@
       </section>
 
       <section id="view-admin" class="view">
+        <p id="admin-state" class="view-state hidden" aria-live="polite"></p>
         <div class="stats">
           <article><span>Người dùng</span><strong id="stat-users">—</strong><small>tài khoản đang quản lý</small></article>
           <article><span>Phòng ban</span><strong id="stat-departments">—</strong><small>miền dữ liệu độc lập</small></article>
@@ -122,11 +124,21 @@
       </section>
 
       <section id="view-audit" class="view">
+        <p id="audit-state" class="view-state hidden" aria-live="polite"></p>
         <div class="panel table-panel"><table><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hành động</th><th>Tài nguyên</th><th>Kết quả</th></tr></thead><tbody id="audit-table"></tbody></table></div>
       </section>
     </main>
     <form id="profile-form" class="drawer hidden"><div class="drawer-head profile-title"><h3>Hồ sơ của tôi</h3><button type="button" data-close="profile-form">×</button></div><div class="profile-overview"><div class="profile-item"><span>Tên</span><strong id="profile-name-value">—</strong></div><div class="profile-item"><span>Vai trò</span><strong id="profile-role-value">—</strong></div><div class="profile-item" id="profile-department-item"><span>Phòng ban</span><strong id="profile-department-value">—</strong></div><div class="profile-item"><span>Email</span><strong id="profile-email-value">—</strong></div></div><div class="profile-edit"><label>Tên hiển thị<input id="profile-display-name" required></label><button class="primary profile-save">Lưu thay đổi</button></div></form><form id="password-form" class="drawer hidden"><div class="drawer-head"><h3>Đổi mật khẩu</h3><button type="button" data-close="password-form">×</button></div><label>Mật khẩu mới<input id="new-password" type="password" minlength="10" required></label><button class="primary">Cập nhật mật khẩu</button></form>
   </div>
-  <script src="/static/app.js?v=semi-ver1.0.4"></script>
+  <div id="action-modal" class="modal-layer hidden" role="dialog" aria-modal="true" aria-labelledby="action-modal-title">
+    <form id="action-modal-form" class="action-modal" aria-busy="false">
+      <p class="eyebrow" id="action-modal-kicker">Xác nhận thao tác</p>
+      <h3 id="action-modal-title">Xác nhận</h3>
+      <p id="action-modal-message" class="muted"></p>
+      <label id="action-modal-input-wrap" class="hidden"><span id="action-modal-input-label">Giá trị</span><input id="action-modal-input" autocomplete="off"></label>
+      <div class="modal-actions"><button id="action-modal-cancel" class="secondary compact" type="button">Hủy</button><button id="action-modal-confirm" class="primary compact" type="submit">Xác nhận</button></div>
+    </form>
+  </div>
+  <script src="/static/app.js?v=v1.0.5"></script>
 </body>
 </html>
