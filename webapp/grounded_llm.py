@@ -21,7 +21,10 @@ class GroundedLLM:
 
     def answer(self, *, question: str, citations: list[dict[str, Any]]) -> str:
         if not self.configured:
-            return "Chưa cấu hình chatbot. Dưới đây là các đoạn nguồn phù hợp nhất."
+            return (
+                "Chế độ truy xuất bằng chứng. Hệ thống đang hiển thị các nguồn phù hợp "
+                "nhất trong phạm vi tài liệu bạn được phép truy cập."
+            )
         evidence = "\n\n".join(
             f"[{index}] {citation['title']} — {citation.get('locator') or 'Nội dung'}\n"
             f"{citation['excerpt'][:1400]}"

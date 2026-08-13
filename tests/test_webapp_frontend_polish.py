@@ -23,3 +23,17 @@ def test_frontend_polish_keeps_pending_evidence_and_action_modal_hooks():
     assert "Không tìm thấy nguồn phù hợp trong phạm vi tài liệu" in script
     assert "openActionModal" in script
     assert "button:focus-visible" in styles
+
+
+def test_sprint2_source_drawer_and_modal_paths_have_no_native_dialogs():
+    script = Path("webapp/static/app.js").read_text(encoding="utf-8")
+    styles = Path("webapp/static/styles.css").read_text(encoding="utf-8")
+
+    assert "window.confirm(" not in script
+    assert "window.prompt(" not in script
+    assert 'data-close="source-drawer"' in script
+    assert "function closeDrawer" in script
+    assert "lastDrawerTrigger" in script
+    assert "source-drawer-title" in script
+    assert "source-drawer-title" in styles
+    assert ".conversation{padding-bottom:108px}" in styles
