@@ -117,3 +117,11 @@ docker run --rm -p 8000:8000 vietnamese-enterprise-rag:web-demo
 
 Không commit `.env`, API key, token, mật khẩu, database runtime hoặc checkpoint
 weights. Checkpoint được bàn giao riêng và kiểm tra bằng SHA256.
+## TEST
+
+https://vietnamese-enterprise-rag-demo.onrender.com/
+
+mail: admin@knowledgeos.test
+pass: 123456789
+<img width="2547" height="1396" alt="Ảnh màn hình 2026-08-25 lúc 11 39 50" src="https://github.com/user-attachments/assets/bdf25150-a1f4-4ef0-80ee-1b90f5f4a737" />
+
