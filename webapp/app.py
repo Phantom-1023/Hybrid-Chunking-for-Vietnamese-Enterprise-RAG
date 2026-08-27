@@ -253,6 +253,10 @@ def create_app(
     def get_hybrid_retriever():
         nonlocal configured_hybrid_retriever
         if configured_hybrid_retriever is None:
+            if reranker is None:
+                raise RuntimeError(
+                    "Hybrid retrieval requires the verified fine-tuned reranker"
+                )
             configured_hybrid_retriever = HybridRetriever(reranker=reranker)
         return configured_hybrid_retriever
 
