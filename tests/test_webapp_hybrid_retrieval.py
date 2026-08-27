@@ -152,10 +152,12 @@ def test_hybrid_failure_returns_valid_bm25_result(tmp_path, monkeypatch):
     assert payload["citations"][0]["department"] == "HR"
 
 
-def test_hybrid_without_verified_reranker_falls_back_before_embedding(
+def test_hybrid_without_verified_reranker_runs_rrf_without_reranking(
     tmp_path, monkeypatch
 ):
     monkeypatch.setenv("WEBAPP_UPLOAD_DIR", str(tmp_path / "uploads"))
+    hybrid = _RecordingHybrid()
+    monkeypatch.setattr("webapp.app.HybridRetriever", lambda *, reranker: hybrid)
     app = create_app(
         database_path=tmp_path / "webapp.db",
         token_secret="test-secret-that-is-long-and-local-only",
@@ -173,8 +175,9 @@ def test_hybrid_without_verified_reranker_falls_back_before_embedding(
 
     retrieval = response.json()["retrieval"]
     assert response.status_code == 200
-    assert retrieval["method"] == "bm25_acl_first"
-    assert retrieval["hybrid_fallback"] is True
+    assert retrieval["method"] == "hybrid_rrf"
+    assert retrieval["hybrid_fallback"] is False
+    assert len(hybrid.seen_documents) == 1
 
 
 def test_hybrid_flag_defaults_off_without_changing_bm25_contract(tmp_path, monkeypatch):
